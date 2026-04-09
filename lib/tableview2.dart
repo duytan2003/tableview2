@@ -1,4 +1,4 @@
-library tableview2;
+library;
 
 export 'core/models/listview_config_model.dart';
 export 'core/models/table_column_config.dart';

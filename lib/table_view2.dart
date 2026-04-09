@@ -514,6 +514,7 @@ class _TableView2State extends State<TableView2> {
                     index,
                     widget.sortAscending ?? true,
                   ),
+                  package: 'tableview2',
                   width: 12,
                   height: 12,
                 ),
