@@ -104,6 +104,21 @@ class TableView2 extends StatefulWidget {
       return 'assets/actions/ico_listview_sort_none.svg';
     }
   }
+
+  static Color getSortIconColor(
+    int sortColumnIndex,
+    int currentIndex,
+    bool sortAscending,
+    Color sortIconColor,
+  ) {
+    if (sortColumnIndex == currentIndex && sortAscending) {
+      return Colors.orange;
+    } else if (sortColumnIndex == currentIndex && !sortAscending) {
+      return Colors.orange;
+    } else {
+      return sortIconColor;
+    }
+  }
 }
 
 class _TableView2State extends State<TableView2> {
@@ -523,7 +538,15 @@ class _TableView2State extends State<TableView2> {
                   package: 'tableview2',
                   width: 12,
                   height: 12,
-                  colorFilter: ColorFilter.mode(sortIconColor, BlendMode.srcIn),
+                  colorFilter: ColorFilter.mode(
+                    TableView2.getSortIconColor(
+                      widget.sortColumnIndex ?? 0,
+                      index,
+                      widget.sortAscending ?? true,
+                      sortIconColor,
+                    ),
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
           ],
