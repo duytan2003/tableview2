@@ -29,6 +29,7 @@ class TableView2 extends StatefulWidget {
     this.tableHeaderColor = Colors.blueAccent,
     this.isUseMaxWidth = false,
     this.hoveredIndexNotifier,
+    this.sortIconColor = Colors.white,
   });
   final Widget? empty;
   final String? emptyMessage;
@@ -45,6 +46,7 @@ class TableView2 extends StatefulWidget {
   final Color tableHeaderColor;
   final ValueNotifier<int>? hoveredIndexNotifier;
   final bool isUseMaxWidth;
+  final Color sortIconColor;
 
   @override
   State<TableView2> createState() => _TableView2State();
@@ -291,6 +293,7 @@ class _TableView2State extends State<TableView2> {
               context: context,
               columnConfig: groupColumn,
               index: vicinity.column,
+              sortIconColor: widget.sortIconColor,
             ),
           );
         } else {
@@ -309,6 +312,7 @@ class _TableView2State extends State<TableView2> {
             context: context,
             columnConfig: columnConfig,
             index: vicinity.column,
+            sortIconColor: widget.sortIconColor,
           ),
         );
       }
@@ -372,6 +376,7 @@ class _TableView2State extends State<TableView2> {
             context: context,
             columnConfig: columnConfig,
             index: vicinity.column,
+            sortIconColor: widget.sortIconColor,
           ),
         );
       } else {
@@ -480,6 +485,7 @@ class _TableView2State extends State<TableView2> {
     required TableColumnConfig columnConfig,
     bool enableSettings = true,
     VoidCallback? onLongPress,
+    required Color sortIconColor,
   }) {
     final shouldCenter = columnConfig.isCenter;
     final isSortable = columnConfig.isSortable;
@@ -517,6 +523,7 @@ class _TableView2State extends State<TableView2> {
                   package: 'tableview2',
                   width: 12,
                   height: 12,
+                  colorFilter: ColorFilter.mode(sortIconColor, BlendMode.srcIn),
                 ),
               ),
           ],
