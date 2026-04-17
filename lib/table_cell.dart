@@ -17,6 +17,7 @@ class TableCellWrapper extends StatelessWidget {
         fontSize: 12,
         color: Colors.black,
         overflow: TextOverflow.ellipsis,
+        fontFamily: 'Montserrat',
       ),
       child: isCenter ? Center(child: child) : child,
     );
