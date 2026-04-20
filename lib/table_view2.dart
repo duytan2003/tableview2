@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:two_dimensional_scrollables/two_dimensional_scrollables.dart';
 
@@ -153,6 +154,24 @@ class _TableView2State extends State<TableView2> {
     }
   }
 
+  void _applyScrollMetricsForScrollbar(ScrollMetrics metrics) {
+    void apply() {
+      if (!mounted) return;
+      if (metrics.axis == Axis.horizontal) {
+        _horizontalMetricsNotifier.value = metrics;
+      } else if (metrics.axis == Axis.vertical) {
+        _verticalMetricsNotifier.value = metrics;
+      }
+    }
+
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      SchedulerBinding.instance.addPostFrameCallback((_) => apply());
+    } else {
+      apply();
+    }
+  }
+
   @override
   void dispose() {
     _horizontalScrollController.dispose();
@@ -199,12 +218,7 @@ class _TableView2State extends State<TableView2> {
       padding: const EdgeInsets.only(bottom: 14),
       child: NotificationListener<ScrollNotification>(
         onNotification: (notification) {
-          final metrics = notification.metrics;
-          if (metrics.axis == Axis.horizontal) {
-            _horizontalMetricsNotifier.value = metrics;
-          } else if (metrics.axis == Axis.vertical) {
-            _verticalMetricsNotifier.value = metrics;
-          }
+          _applyScrollMetricsForScrollbar(notification.metrics);
           return false;
         },
         child: TableView.builder(
