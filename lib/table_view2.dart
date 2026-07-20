@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:tableview2/dialog.dart';
+import 'package:tableview2/listview_settings.dart';
 import 'package:two_dimensional_scrollables/two_dimensional_scrollables.dart';
 
 import 'core/models/listview_config_model.dart';
@@ -513,13 +515,25 @@ class _TableView2State extends State<TableView2> {
     required BuildContext context,
     required TableColumnConfig columnConfig,
     bool enableSettings = true,
-    VoidCallback? onLongPress,
     required Color sortIconColor,
   }) {
     final shouldCenter = columnConfig.isCenter;
     final isSortable = columnConfig.isSortable;
     return InkWell(
-      onLongPress: enableSettings ? onLongPress : null,
+      onLongPress: enableSettings
+          ? () {
+              IDialog.showCommonAnimationDialog(
+                context: context,
+                content: ListViewSettings(
+                  listViewConfig: widget.listViewConfig,
+                  columnConfig: columnConfig,
+                  onUpdate: (newConfig, isFixed) {
+                    widget.onConfigUpdated(newConfig, isFixed);
+                  },
+                ),
+              );
+            }
+          : null,
       child: Container(
         color: widget.tableHeaderColor,
         padding: const EdgeInsets.all(4),
