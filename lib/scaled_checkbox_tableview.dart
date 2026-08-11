@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class ScaledCheckbox extends StatelessWidget {
+class ScaledCheckboxTableView extends StatelessWidget {
   final bool? value;
   final ValueChanged<bool?>? onChanged;
   final bool tristate;
@@ -23,7 +23,7 @@ class ScaledCheckbox extends StatelessWidget {
   final bool enabled;
   final Color disabledBorderColor;
 
-  const ScaledCheckbox({
+  const ScaledCheckboxTableView({
     super.key,
     required this.value,
     this.onChanged,

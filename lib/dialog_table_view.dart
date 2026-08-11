@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class IDialog {
+class IDialogTableView {
   static void showErrorMessage({
     required BuildContext context,
     String title = 'Lỗi',

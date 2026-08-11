@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:tableview2/dialog.dart';
+import 'package:tableview2/dialog_table_view.dart';
 import 'package:tableview2/listview_settings.dart';
 import 'package:two_dimensional_scrollables/two_dimensional_scrollables.dart';
 
@@ -522,7 +522,7 @@ class _TableView2State extends State<TableView2> {
     return InkWell(
       onLongPress: enableSettings
           ? () {
-              IDialog.showCommonAnimationDialog(
+              IDialogTableView.showCommonAnimationDialog(
                 context: context,
                 content: ListViewSettings(
                   listViewConfig: widget.listViewConfig,

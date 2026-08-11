@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class IRectangleButton extends StatelessWidget {
-  const IRectangleButton({
+class ButtonTableView extends StatelessWidget {
+  const ButtonTableView({
     super.key,
     required this.leading,
     required this.title,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:tableview2/dialog.dart';
-import 'package:tableview2/rectangle_button.dart';
+import 'package:tableview2/button_tableview.dart';
+import 'package:tableview2/dialog_table_view.dart';
 import 'package:tableview2/tableview2.dart';
 
 import 'scaled_checkbox.dart';
@@ -61,7 +61,7 @@ class _ListViewSettingsState extends State<ListViewSettings> {
   }
 
   void _showError(String message) {
-    IDialog.showErrorMessage(context: context, message: message);
+    IDialogTableView.showErrorMessage(context: context, message: message);
   }
 
   void _submitWidth([String? value]) {
@@ -146,7 +146,7 @@ class _ListViewSettingsState extends State<ListViewSettings> {
           ),
           Row(
             children: [
-              ScaledCheckbox(
+              ScaledCheckboxTableView(
                 value: _isFixed,
                 enabled: widget.columnConfig.isCanFreezed,
                 activeColor: Colors.blueAccent,
@@ -172,7 +172,7 @@ class _ListViewSettingsState extends State<ListViewSettings> {
           ),
           Row(
             children: [
-              ScaledCheckbox(
+              ScaledCheckboxTableView(
                 value: _isCenter,
                 activeColor: Colors.blueAccent,
                 onChanged: (value) {
@@ -200,7 +200,7 @@ class _ListViewSettingsState extends State<ListViewSettings> {
             mainAxisAlignment: MainAxisAlignment.end,
             spacing: 8.0,
             children: [
-              IRectangleButton(
+              ButtonTableView(
                 leading: SvgPicture.asset(
                   'assets/actions/ico_cancel.svg',
                   package: 'tableview2',
@@ -209,7 +209,7 @@ class _ListViewSettingsState extends State<ListViewSettings> {
                 padding: const EdgeInsets.symmetric(horizontal: 4.0),
                 onPressed: () => Navigator.pop(context),
               ),
-              IRectangleButton(
+              ButtonTableView(
                 leading: SvgPicture.asset(
                   'assets/actions/ico_action_return.svg',
                   package: 'tableview2',
