@@ -4,7 +4,7 @@ import 'package:tableview2/button_tableview.dart';
 import 'package:tableview2/dialog_table_view.dart';
 import 'package:tableview2/tableview2.dart';
 
-import 'scaled_checkbox.dart';
+import 'scaled_checkbox_tableview.dart';
 
 class ListViewSettings extends StatefulWidget {
   const ListViewSettings({
