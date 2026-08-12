@@ -33,8 +33,8 @@ class TableView2 extends StatefulWidget {
     this.enableColumnResize = true,
     this.resizeHandleWidth = 14.0,
     this.enableRowResize = true,
-    this.resizeHandleHeight = 10.0,
-    this.minDataRowHeight = 30.0,
+    this.resizeHandleHeight = 30.0,
+    this.minDataRowHeight = 44.0,
     this.maxDataRowHeight = 400.0,
   });
   final Widget? empty;
@@ -393,33 +393,18 @@ class _TableView2State extends State<TableView2> {
             }
           },
           onLongPress: () => row.onLongPress?.call(),
-          child: ValueListenableBuilder<int>(
-            valueListenable:
-                widget.hoveredIndexNotifier ?? ValueNotifier<int>(-1),
-            builder: (context, hoveredIndex, child) {
-              return MouseRegion(
-                onEnter: (_) =>
-                    widget.hoveredIndexNotifier?.value = row.index ?? 1,
-                onExit: (_) => widget.hoveredIndexNotifier?.value = -1,
-                child: Container(
-                  color: hoveredIndex == row.index
-                      ? Colors.grey.shade100
-                      : (row.selected
-                            ? Colors.blueAccent.withValues(alpha: 0.1)
-                            : Colors.transparent),
-                  alignment: isAlignCenter
-                      ? Alignment.center
-                      : Alignment.centerLeft,
-                  child: _wrapDataCellWithRowResizeHandle(
-                    dataRowIndex: dataRow,
-                    child: TableCellWrapper(
-                      isCenter: isAlignCenter,
-                      child: row.cells[adjustedColumnIndex],
-                    ),
-                  ),
-                ),
-              );
-            },
+          child: Container(
+            color: row.selected
+                ? Colors.blueAccent.withValues(alpha: 0.1)
+                : Colors.transparent,
+            alignment: isAlignCenter ? Alignment.center : Alignment.centerLeft,
+            child: _wrapDataCellWithRowResizeHandle(
+              dataRowIndex: dataRow,
+              child: TableCellWrapper(
+                isCenter: isAlignCenter,
+                child: row.cells[adjustedColumnIndex],
+              ),
+            ),
           ),
         ),
       );
@@ -552,14 +537,12 @@ class _TableView2State extends State<TableView2> {
       fit: StackFit.expand,
       clipBehavior: Clip.none,
       children: [
-        Padding(
-          padding: EdgeInsets.only(bottom: widget.resizeHandleHeight / 2),
-          child: child,
-        ),
+        // Fill the full cell so content stays vertically centered.
+        Positioned.fill(child: child),
         Positioned(
           left: 0,
           right: 0,
-          bottom: -(widget.resizeHandleHeight / 2),
+          bottom: 0,
           height: widget.resizeHandleHeight,
           child: MouseRegion(
             cursor: SystemMouseCursors.resizeRow,
@@ -615,97 +598,81 @@ class _TableView2State extends State<TableView2> {
         widget.enableColumnResize &&
         columnConfig.range == null &&
         columnConfig.maxWidth > columnConfig.minWidth;
-    return InkWell(
-      hoverColor: Colors.transparent,
-      splashColor: Colors.transparent,
-      highlightColor: Colors.transparent,
-      focusColor: Colors.transparent,
-
-      child: Container(
-        color: widget.tableHeaderColor,
-        padding: const EdgeInsets.fromLTRB(4, 4, 0, 4),
-        alignment: shouldCenter ? Alignment.center : Alignment.centerLeft,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned.fill(
-              right: canResize ? widget.resizeHandleWidth + 4 : 4,
-              child: Row(
-                mainAxisAlignment: isSortable == true
-                    ? MainAxisAlignment.spaceBetween
-                    : shouldCenter
-                    ? MainAxisAlignment.center
-                    : MainAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      text,
-                      style: const TextStyle(color: Colors.white),
-                      overflow: TextOverflow.visible,
-                      textAlign: shouldCenter
-                          ? TextAlign.center
-                          : TextAlign.left,
-                    ),
-                  ),
-                  if (isSortable)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: InkWell(
-                        hoverColor: Colors.transparent,
-                        splashColor: Colors.transparent,
-                        highlightColor: Colors.transparent,
-                        focusColor: Colors.transparent,
-                        onTap: () => widget.onSort?.call(
-                          index,
-                          widget.sortAscending ?? true,
-                        ),
-                        child: SvgPicture.asset(
-                          TableView2.getSortIcon(
-                            widget.sortColumnIndex ?? 0,
-                            index,
-                            widget.sortAscending ?? true,
-                          ),
-                          package: 'tableview2',
-                          width: 12,
-                          height: 12,
-                          colorFilter: ColorFilter.mode(
-                            TableView2.getSortIconColor(
-                              widget.sortColumnIndex ?? 0,
-                              index,
-                              widget.sortAscending ?? true,
-                              sortIconColor,
-                            ),
-                            BlendMode.srcIn,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            if (canResize)
-              Positioned(
-                top: 0,
-                bottom: 0,
-                right: -(widget.resizeHandleWidth / 2),
-                width: widget.resizeHandleWidth,
-                child: MouseRegion(
-                  cursor: SystemMouseCursors.resizeColumn,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onHorizontalDragStart: (_) =>
-                        _onColumnResizeStart(columnConfig),
-                    onHorizontalDragUpdate: (details) =>
-                        _onColumnResizeUpdate(columnConfig, details),
-                    onHorizontalDragEnd: (_) => _onColumnResizeEnd(),
-                    onDoubleTap: () =>
-                        _onColumnAutoFit(context, columnConfig, isSortable),
-                    child: const ColoredBox(color: Colors.transparent),
-                  ),
+    return Container(
+      color: widget.tableHeaderColor,
+      padding: const EdgeInsets.fromLTRB(4, 4, 0, 4),
+      alignment: shouldCenter ? Alignment.center : Alignment.centerLeft,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Row(
+            mainAxisAlignment: isSortable == true
+                ? MainAxisAlignment.spaceBetween
+                : shouldCenter
+                ? MainAxisAlignment.center
+                : MainAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  text,
+                  style: const TextStyle(color: Colors.white),
+                  overflow: TextOverflow.visible,
+                  textAlign: shouldCenter ? TextAlign.center : TextAlign.left,
                 ),
               ),
-          ],
-        ),
+              if (isSortable)
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => widget.onSort?.call(
+                      index,
+                      widget.sortAscending ?? true,
+                    ),
+                    child: SvgPicture.asset(
+                      TableView2.getSortIcon(
+                        widget.sortColumnIndex ?? 0,
+                        index,
+                        widget.sortAscending ?? true,
+                      ),
+                      package: 'tableview2',
+                      width: 12,
+                      height: 12,
+                      colorFilter: ColorFilter.mode(
+                        TableView2.getSortIconColor(
+                          widget.sortColumnIndex ?? 0,
+                          index,
+                          widget.sortAscending ?? true,
+                          sortIconColor,
+                        ),
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
+          if (canResize)
+            Positioned(
+              top: 0,
+              bottom: 0,
+              right: -(widget.resizeHandleWidth / 2),
+              width: widget.resizeHandleWidth,
+              child: MouseRegion(
+                cursor: SystemMouseCursors.resizeColumn,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onHorizontalDragStart: (_) =>
+                      _onColumnResizeStart(columnConfig),
+                  onHorizontalDragUpdate: (details) =>
+                      _onColumnResizeUpdate(columnConfig, details),
+                  onHorizontalDragEnd: (_) => _onColumnResizeEnd(),
+                  child: const ColoredBox(color: Colors.transparent),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -738,120 +705,6 @@ class _TableView2State extends State<TableView2> {
     if (_resizingColumnKey == null) return;
     _resizingColumnKey = null;
     _resizeStartWidth = 0;
-  }
-
-  void _onColumnAutoFit(
-    BuildContext context,
-    TableColumnConfig columnConfig,
-    bool isSortable,
-  ) {
-    final adjustedColumnIndex = _columnList.indexWhere(
-      (column) => column.key == columnConfig.key,
-    );
-    if (adjustedColumnIndex < 0) return;
-
-    final contentStyle = DefaultTextStyle.of(
-      context,
-    ).style.copyWith(fontSize: 12);
-    final headerStyle = const TextStyle(
-      color: Colors.white,
-      fontSize: 12,
-      fontFamily: 'Montserrat',
-    );
-
-    double maxWidth = _measureTextWidth(columnConfig.title, headerStyle);
-    if (isSortable) {
-      maxWidth += 18; // sort icon + spacing
-    }
-
-    for (final row in widget.rows) {
-      if (adjustedColumnIndex >= row.cells.length) continue;
-      final cellWidth = _measureCellWidgetWidth(
-        row.cells[adjustedColumnIndex],
-        contentStyle,
-      );
-      if (cellWidth != null && cellWidth > maxWidth) {
-        maxWidth = cellWidth;
-      }
-    }
-
-    const horizontalPadding = 16.0; // typical 8 left + 8 right
-    final targetWidth = (maxWidth + horizontalPadding).clamp(
-      columnConfig.minWidth,
-      columnConfig.maxWidth,
-    );
-
-    widget.onConfigUpdated(
-      columnConfig.copyWith(width: targetWidth),
-      widget.listViewConfig.isFixedColumn(columnConfig),
-    );
-  }
-
-  double _measureTextWidth(String text, TextStyle style) {
-    final painter = TextPainter(
-      text: TextSpan(text: text, style: style),
-      maxLines: 1,
-      textDirection: TextDirection.ltr,
-    )..layout();
-    return painter.width;
-  }
-
-  double? _measureCellWidgetWidth(Widget widget, TextStyle fallbackStyle) {
-    if (widget is Text) {
-      return _measureTextWidth(
-        widget.data ?? widget.textSpan?.toPlainText() ?? '',
-        widget.style ?? fallbackStyle,
-      );
-    }
-    if (widget is RichText) {
-      return _measureTextWidth(
-        widget.text.toPlainText(),
-        widget.text.style ?? fallbackStyle,
-      );
-    }
-    if (widget is Padding) {
-      final childWidth = widget.child == null
-          ? null
-          : _measureCellWidgetWidth(widget.child!, fallbackStyle);
-      if (childWidth == null) return null;
-      return childWidth + widget.padding.horizontal;
-    }
-    if (widget is Container) {
-      final childWidth = widget.child == null
-          ? null
-          : _measureCellWidgetWidth(widget.child!, fallbackStyle);
-      if (childWidth == null) return null;
-      final padding = widget.padding is EdgeInsets
-          ? (widget.padding as EdgeInsets).horizontal
-          : 0.0;
-      return childWidth + padding;
-    }
-    if (widget is Align) {
-      return widget.child == null
-          ? null
-          : _measureCellWidgetWidth(widget.child!, fallbackStyle);
-    }
-    if (widget is Center) {
-      return widget.child == null
-          ? null
-          : _measureCellWidgetWidth(widget.child!, fallbackStyle);
-    }
-    if (widget is TableCellWrapper) {
-      return _measureCellWidgetWidth(widget.child, fallbackStyle);
-    }
-    if (widget is Row) {
-      var total = 0.0;
-      var measuredAny = false;
-      for (final child in widget.children) {
-        final width = _measureCellWidgetWidth(child, fallbackStyle);
-        if (width != null) {
-          total += width;
-          measuredAny = true;
-        }
-      }
-      return measuredAny ? total : null;
-    }
-    return null;
   }
 
   // Tính tổng số cột thực tế (bao gồm các sub-columns trong grouped columns)
