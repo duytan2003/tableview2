@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:tableview2/dialog_table_view.dart';
-import 'package:tableview2/listview_settings_table.dart';
 import 'package:two_dimensional_scrollables/two_dimensional_scrollables.dart';
 
 import 'core/models/listview_config_model.dart';
 import 'core/models/table_column_config.dart';
-import 'core/typedefs/type_defs.dart';
 import 'data_table_view.dart';
 import 'fix_aware_horizontal_scrollbar.dart';
 import 'fix_aware_vertical_scrollbar.dart';
@@ -35,6 +32,10 @@ class TableView2 extends StatefulWidget {
     this.sortIconColor = Colors.white,
     this.enableColumnResize = true,
     this.resizeHandleWidth = 14.0,
+    this.enableRowResize = true,
+    this.resizeHandleHeight = 10.0,
+    this.minDataRowHeight = 30.0,
+    this.maxDataRowHeight = 400.0,
   });
   final Widget? empty;
   final String? emptyMessage;
@@ -43,7 +44,7 @@ class TableView2 extends StatefulWidget {
   final double dataRowHeight;
   final double headingRowHeight;
   final ListViewConfigModel listViewConfig;
-  final ListViewConfigUpdatedCallback onConfigUpdated;
+  final Function(TableColumnConfig, bool) onConfigUpdated;
   final void Function(int, bool)? onSort;
   final int? sortColumnIndex;
   final bool? sortAscending;
@@ -54,6 +55,12 @@ class TableView2 extends StatefulWidget {
   final Color sortIconColor;
   final bool enableColumnResize;
   final double resizeHandleWidth;
+
+  /// Drag the bottom border of data rows to change row height (session only).
+  final bool enableRowResize;
+  final double resizeHandleHeight;
+  final double minDataRowHeight;
+  final double maxDataRowHeight;
 
   @override
   State<TableView2> createState() => _TableView2State();
@@ -135,6 +142,15 @@ class _TableView2State extends State<TableView2> {
   late final ValueNotifier<ScrollMetrics?> _verticalMetricsNotifier;
   String? _resizingColumnKey;
   double _resizeStartWidth = 0;
+  bool _isResizingRowHeight = false;
+  int? _resizingDataRowIndex;
+
+  /// Session-only per-row heights, keyed by data row index.
+  final Map<int, double> _localDataRowHeights = {};
+
+  double _effectiveDataRowHeightAt(int dataRowIndex) {
+    return _localDataRowHeights[dataRowIndex] ?? widget.dataRowHeight;
+  }
 
   @override
   void initState() {
@@ -256,7 +272,7 @@ class _TableView2State extends State<TableView2> {
             extent: FixedTableSpanExtent(
               index < widget.fixedRowCount
                   ? widget.headingRowHeight
-                  : widget.dataRowHeight,
+                  : _effectiveDataRowHeightAt(index - widget.fixedRowCount),
             ),
             foregroundDecoration: const TableSpanDecoration(
               border: TableSpanBorder(
@@ -394,9 +410,12 @@ class _TableView2State extends State<TableView2> {
                   alignment: isAlignCenter
                       ? Alignment.center
                       : Alignment.centerLeft,
-                  child: TableCellWrapper(
-                    isCenter: isAlignCenter,
-                    child: row.cells[adjustedColumnIndex],
+                  child: _wrapDataCellWithRowResizeHandle(
+                    dataRowIndex: dataRow,
+                    child: TableCellWrapper(
+                      isCenter: isAlignCenter,
+                      child: row.cells[adjustedColumnIndex],
+                    ),
                   ),
                 ),
               );
@@ -438,7 +457,7 @@ class _TableView2State extends State<TableView2> {
 
     final int dataRow = vicinity.row - widget.fixedRowCount;
     if (dataRow >= 0 && dataRow < widget.rows.length) {
-      return _buildDataCheckboxCell(context, widget.rows[dataRow]);
+      return _buildDataCheckboxCell(context, widget.rows[dataRow], dataRow);
     }
 
     return const TableViewCell(child: ColoredBox(color: Colors.white));
@@ -474,36 +493,40 @@ class _TableView2State extends State<TableView2> {
   TableViewCell _buildDataCheckboxCell(
     BuildContext context,
     DataRowTableView row,
+    int dataRowIndex,
   ) {
     return TableViewCell(
-      child: Container(
-        color: row.selected
-            ? Colors.blueAccent.withValues(alpha: 0.1)
-            : Colors.white,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.all(8),
-        child: CheckboxTheme(
-          data: row.enableCheckbox
-              ? TableView2.checkboxTheme(context)
-              : TableView2.checkboxTheme(context).copyWith(
-                  fillColor: WidgetStateProperty.resolveWith<Color>((states) {
-                    if (states.contains(WidgetState.selected)) {
-                      return Colors.grey;
+      child: _wrapDataCellWithRowResizeHandle(
+        dataRowIndex: dataRowIndex,
+        child: Container(
+          color: row.selected
+              ? Colors.blueAccent.withValues(alpha: 0.1)
+              : Colors.white,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.all(8),
+          child: CheckboxTheme(
+            data: row.enableCheckbox
+                ? TableView2.checkboxTheme(context)
+                : TableView2.checkboxTheme(context).copyWith(
+                    fillColor: WidgetStateProperty.resolveWith<Color>((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return Colors.grey;
+                      }
+                      return Colors.transparent;
+                    }),
+                    checkColor: const WidgetStatePropertyAll(Colors.white),
+                    side: WidgetStateBorderSide.resolveWith((states) {
+                      return const BorderSide(color: Colors.grey, width: 1);
+                    }),
+                  ),
+            child: Checkbox(
+              value: row.enableCheckbox ? row.isChecked : true,
+              onChanged: row.enableCheckbox
+                  ? (value) {
+                      row.onSelectChanged?.call(value ?? false);
                     }
-                    return Colors.transparent;
-                  }),
-                  checkColor: const WidgetStatePropertyAll(Colors.white),
-                  side: WidgetStateBorderSide.resolveWith((states) {
-                    return const BorderSide(color: Colors.grey, width: 1);
-                  }),
-                ),
-          child: Checkbox(
-            value: row.enableCheckbox ? row.isChecked : true,
-            onChanged: row.enableCheckbox
-                ? (value) {
-                    row.onSelectChanged?.call(value ?? false);
-                  }
-                : null,
+                  : null,
+            ),
           ),
         ),
       ),
@@ -519,12 +542,71 @@ class _TableView2State extends State<TableView2> {
     return null; // Indeterminate state
   }
 
+  /// Drag the bottom border of a data row to change that row's height only.
+  Widget _wrapDataCellWithRowResizeHandle({
+    required int dataRowIndex,
+    required Widget child,
+  }) {
+    if (!widget.enableRowResize) return child;
+    return Stack(
+      fit: StackFit.expand,
+      clipBehavior: Clip.none,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(bottom: widget.resizeHandleHeight / 2),
+          child: child,
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: -(widget.resizeHandleHeight / 2),
+          height: widget.resizeHandleHeight,
+          child: MouseRegion(
+            cursor: SystemMouseCursors.resizeRow,
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onVerticalDragStart: (_) => _onDataRowResizeStart(dataRowIndex),
+              onVerticalDragUpdate: (details) =>
+                  _onDataRowResizeUpdate(dataRowIndex, details),
+              onVerticalDragEnd: (_) => _onDataRowResizeEnd(),
+              child: const ColoredBox(color: Colors.transparent),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _onDataRowResizeStart(int dataRowIndex) {
+    _isResizingRowHeight = true;
+    _resizingDataRowIndex = dataRowIndex;
+  }
+
+  void _onDataRowResizeUpdate(int dataRowIndex, DragUpdateDetails details) {
+    if (!_isResizingRowHeight || _resizingDataRowIndex != dataRowIndex) return;
+    final currentHeight = _effectiveDataRowHeightAt(dataRowIndex);
+    final targetHeight = (currentHeight + details.delta.dy).clamp(
+      widget.minDataRowHeight,
+      widget.maxDataRowHeight,
+    );
+    if (_localDataRowHeights[dataRowIndex] == targetHeight) return;
+    setState(() {
+      _localDataRowHeights[dataRowIndex] = targetHeight;
+    });
+  }
+
+  void _onDataRowResizeEnd() {
+    if (!_isResizingRowHeight) return;
+    _isResizingRowHeight = false;
+    _resizingDataRowIndex = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncInitialMetrics());
+  }
+
   Widget _headerCell(
     String text, {
     required int index,
     required BuildContext context,
     required TableColumnConfig columnConfig,
-    bool enableSettings = true,
     required Color sortIconColor,
   }) {
     final shouldCenter = columnConfig.isCenter;
@@ -538,20 +620,7 @@ class _TableView2State extends State<TableView2> {
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
       focusColor: Colors.transparent,
-      onLongPress: enableSettings
-          ? () {
-              IDialogTableView.showCommonAnimationDialog(
-                context: context,
-                content: ListViewSettingsTable(
-                  listViewConfig: widget.listViewConfig,
-                  columnConfig: columnConfig,
-                  onUpdate: (newConfig, isFixed) {
-                    widget.onConfigUpdated(newConfig, isFixed);
-                  },
-                ),
-              );
-            }
-          : null,
+
       child: Container(
         color: widget.tableHeaderColor,
         padding: const EdgeInsets.fromLTRB(4, 4, 0, 4),

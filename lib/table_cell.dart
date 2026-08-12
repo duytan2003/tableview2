@@ -19,7 +19,9 @@ class TableCellWrapper extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         fontFamily: 'Montserrat',
       ),
-      child: isCenter ? Center(child: child) : child,
+      child: isCenter
+          ? Center(child: child)
+          : Align(alignment: Alignment.centerLeft, child: child),
     );
   }
 }
