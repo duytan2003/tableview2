@@ -620,16 +620,19 @@ class _TableView2State extends State<TableView2> {
                 bottom: 0,
                 right: -(widget.resizeHandleWidth / 2),
                 width: widget.resizeHandleWidth,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onHorizontalDragStart: (_) =>
-                      _onColumnResizeStart(columnConfig),
-                  onHorizontalDragUpdate: (details) =>
-                      _onColumnResizeUpdate(columnConfig, details),
-                  onHorizontalDragEnd: (_) => _onColumnResizeEnd(),
-                  onDoubleTap: () =>
-                      _onColumnAutoFit(context, columnConfig, isSortable),
-                  child: const ColoredBox(color: Colors.transparent),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.resizeColumn,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onHorizontalDragStart: (_) =>
+                        _onColumnResizeStart(columnConfig),
+                    onHorizontalDragUpdate: (details) =>
+                        _onColumnResizeUpdate(columnConfig, details),
+                    onHorizontalDragEnd: (_) => _onColumnResizeEnd(),
+                    onDoubleTap: () =>
+                        _onColumnAutoFit(context, columnConfig, isSortable),
+                    child: const ColoredBox(color: Colors.transparent),
+                  ),
                 ),
               ),
           ],
