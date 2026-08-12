@@ -6,8 +6,8 @@ import 'package:tableview2/tableview2.dart';
 
 import 'scaled_checkbox_tableview.dart';
 
-class ListViewSettings extends StatefulWidget {
-  const ListViewSettings({
+class ListViewSettingsTable extends StatefulWidget {
+  const ListViewSettingsTable({
     super.key,
     required this.columnConfig,
     required this.onUpdate,
@@ -19,10 +19,10 @@ class ListViewSettings extends StatefulWidget {
   final ListViewConfigModel listViewConfig;
 
   @override
-  State<ListViewSettings> createState() => _ListViewSettingsState();
+  State<ListViewSettingsTable> createState() => _ListViewSettingsTableState();
 }
 
-class _ListViewSettingsState extends State<ListViewSettings> {
+class _ListViewSettingsTableState extends State<ListViewSettingsTable> {
   late TextEditingController _widthController;
   late bool _isFixed, _isCenter;
 
