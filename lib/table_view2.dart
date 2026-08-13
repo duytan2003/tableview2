@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -148,6 +151,12 @@ class _TableView2State extends State<TableView2> {
   /// Session-only per-row heights, keyed by data row index.
   final Map<int, double> _localDataRowHeights = {};
 
+  /// Latest table viewport width (from LayoutBuilder).
+  double _viewportWidth = 0;
+
+  /// Keep at least this much width for horizontally scrollable (unpinned) area.
+  static const double _minHorizontalScrollableArea = 200;
+
   double _effectiveDataRowHeightAt(int dataRowIndex) {
     return _localDataRowHeights[dataRowIndex] ?? widget.dataRowHeight;
   }
@@ -233,86 +242,109 @@ class _TableView2State extends State<TableView2> {
   }
 
   Widget _buildTableView() {
-    final totalColumns =
-        _getTotalColumnsCount() +
-        (widget.listViewConfig.isHaveCheckBox ? 1 : 0);
-    final rowCount = widget.fixedRowCount + widget.rows.length;
-    final headerHeight = widget.headingRowHeight * widget.fixedRowCount;
-    final table = Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          _applyScrollMetricsForScrollbar(notification.metrics);
-          return false;
-        },
-        child: ScrollConfiguration(
-          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-          child: TableView.builder(
-            horizontalDetails: ScrollableDetails.horizontal(
-              controller: _horizontalScrollController,
-            ).copyWith(physics: const ClampingScrollPhysics()),
-            verticalDetails: ScrollableDetails.vertical(
-              controller: _verticalScrollController,
-            ).copyWith(physics: const ClampingScrollPhysics()),
-            rowCount: rowCount,
-            columnCount: totalColumns,
-            pinnedRowCount: widget.fixedRowCount,
-            cellBuilder: (context, vicinity) => _buildCell(context, vicinity),
-            pinnedColumnCount: widget.listViewConfig.fixedLeftColumns,
-            columnBuilder: (int index) => TableSpan(
-              extent: FixedTableSpanExtent(_getColumnWidth(index)),
-              foregroundDecoration: TableSpanDecoration(
-                border: TableSpanBorder(
-                  leading: index == 0
-                      ? const BorderSide(color: Colors.grey, width: 0.4)
-                      : BorderSide.none,
-                  trailing: const BorderSide(color: Colors.grey, width: 0.4),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        _viewportWidth = constraints.maxWidth;
+        final totalColumns =
+            _getTotalColumnsCount() +
+            (widget.listViewConfig.isHaveCheckBox ? 1 : 0);
+        final rowCount = widget.fixedRowCount + widget.rows.length;
+        final headerHeight = widget.headingRowHeight * widget.fixedRowCount;
+        final pinnedWidth = _pinnedColumnsWidth();
+        final horizontalScrollbarLeft = math.min(
+          pinnedWidth,
+          math.max(0.0, _viewportWidth - 48),
+        );
+        final table = Padding(
+          padding: const EdgeInsets.only(bottom: 14),
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              _applyScrollMetricsForScrollbar(notification.metrics);
+              return false;
+            },
+            child: ScrollConfiguration(
+              behavior: ScrollConfiguration.of(context).copyWith(
+                scrollbars: false,
+                dragDevices: {
+                  PointerDeviceKind.touch,
+                  PointerDeviceKind.mouse,
+                  PointerDeviceKind.trackpad,
+                },
+              ),
+              child: TableView.builder(
+                horizontalDetails: ScrollableDetails.horizontal(
+                  controller: _horizontalScrollController,
+                ).copyWith(physics: const ClampingScrollPhysics()),
+                verticalDetails: ScrollableDetails.vertical(
+                  controller: _verticalScrollController,
+                ).copyWith(physics: const ClampingScrollPhysics()),
+                rowCount: rowCount,
+                columnCount: totalColumns,
+                pinnedRowCount: widget.fixedRowCount,
+                cellBuilder: (context, vicinity) =>
+                    _buildCell(context, vicinity),
+                pinnedColumnCount: widget.listViewConfig.fixedLeftColumns,
+                columnBuilder: (int index) => TableSpan(
+                  extent: FixedTableSpanExtent(_getColumnWidth(index)),
+                  foregroundDecoration: TableSpanDecoration(
+                    border: TableSpanBorder(
+                      leading: index == 0
+                          ? const BorderSide(color: Colors.grey, width: 0.4)
+                          : BorderSide.none,
+                      trailing: const BorderSide(
+                        color: Colors.grey,
+                        width: 0.4,
+                      ),
+                    ),
+                  ),
+                ),
+                rowBuilder: (int index) => TableSpan(
+                  extent: FixedTableSpanExtent(
+                    index < widget.fixedRowCount
+                        ? widget.headingRowHeight
+                        : _effectiveDataRowHeightAt(
+                            index - widget.fixedRowCount,
+                          ),
+                  ),
+                  foregroundDecoration: const TableSpanDecoration(
+                    border: TableSpanBorder(
+                      trailing: BorderSide(color: Colors.grey, width: 0.4),
+                    ),
+                  ),
                 ),
               ),
             ),
-            rowBuilder: (int index) => TableSpan(
-              extent: FixedTableSpanExtent(
-                index < widget.fixedRowCount
-                    ? widget.headingRowHeight
-                    : _effectiveDataRowHeightAt(index - widget.fixedRowCount),
-              ),
-              foregroundDecoration: const TableSpanDecoration(
-                border: TableSpanBorder(
-                  trailing: BorderSide(color: Colors.grey, width: 0.4),
-                ),
+          ),
+        );
+        if (widget.rows.isEmpty) {
+          return table;
+        }
+        return Stack(
+          children: [
+            table,
+            Positioned(
+              right: 0,
+              top: headerHeight,
+              bottom: 16,
+              width: 12,
+              child: FixedAwareVerticalScrollbar(
+                controller: _verticalScrollController,
+                metricsListenable: _verticalMetricsNotifier,
               ),
             ),
-          ),
-        ),
-      ),
-    );
-    if (widget.rows.isEmpty) {
-      return table;
-    }
-    return Stack(
-      children: [
-        table,
-        Positioned(
-          right: 0,
-          top: headerHeight,
-          bottom: 16,
-          width: 12,
-          child: FixedAwareVerticalScrollbar(
-            controller: _verticalScrollController,
-            metricsListenable: _verticalMetricsNotifier,
-          ),
-        ),
-        Positioned(
-          left: _pinnedColumnsWidth(),
-          right: 0,
-          bottom: 0,
-          height: 16,
-          child: FixedAwareHorizontalScrollbar(
-            controller: _horizontalScrollController,
-            metricsListenable: _horizontalMetricsNotifier,
-          ),
-        ),
-      ],
+            Positioned(
+              left: horizontalScrollbarLeft,
+              right: 0,
+              bottom: 0,
+              height: 16,
+              child: FixedAwareHorizontalScrollbar(
+                controller: _horizontalScrollController,
+                metricsListenable: _horizontalMetricsNotifier,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -705,10 +737,30 @@ class _TableView2State extends State<TableView2> {
         .where((col) => col.key == columnConfig.key)
         .firstOrNull;
     final currentWidth = currentColumn?.width ?? _resizeStartWidth;
-    final targetWidth = (currentWidth + details.delta.dx).clamp(
+    var targetWidth = (currentWidth + details.delta.dx).clamp(
       columnConfig.minWidth,
       columnConfig.maxWidth,
     );
+
+    // Pinned columns must leave room so horizontal scroll still works.
+    final tableColumnIndex = _tableColumnIndexForKey(columnConfig.key);
+    final pinnedCount = widget.listViewConfig.fixedLeftColumns;
+    if (tableColumnIndex != null &&
+        tableColumnIndex < pinnedCount &&
+        _viewportWidth > 0) {
+      var otherPinned = 0.0;
+      for (var i = 0; i < pinnedCount; i++) {
+        if (i == tableColumnIndex) continue;
+        otherPinned += _rawColumnWidth(i);
+      }
+      final maxAllowed =
+          (_viewportWidth - _minHorizontalScrollableArea - otherPinned).clamp(
+            columnConfig.minWidth,
+            columnConfig.maxWidth,
+          );
+      targetWidth = targetWidth.clamp(columnConfig.minWidth, maxAllowed);
+    }
+
     final updatedConfig = columnConfig.copyWith(width: targetWidth);
     widget.onConfigUpdated(updatedConfig);
   }
@@ -800,18 +852,25 @@ class _TableView2State extends State<TableView2> {
   bool _isGroupedColumn(int visibleColumnIndex) =>
       _getGroupColumn(visibleColumnIndex) != null;
 
-  double _getColumnWidth(int actualColumnIndex) {
-    // Handle checkbox column
+  int? _tableColumnIndexForKey(String key) {
+    for (var i = 0; i < _columnList.length; i++) {
+      if (_columnList[i].key == key) {
+        return widget.listViewConfig.isHaveCheckBox ? i + 1 : i;
+      }
+    }
+    return null;
+  }
+
+  double _rawColumnWidth(int actualColumnIndex) {
     if (widget.listViewConfig.isHaveCheckBox && actualColumnIndex == 0) {
-      return 60.0; // Fixed width for checkbox column
+      return 60.0;
     }
 
-    // Adjust column index if checkbox column exists
     final adjustedColumnIndex = widget.listViewConfig.isHaveCheckBox
         ? actualColumnIndex - 1
         : actualColumnIndex;
     if (adjustedColumnIndex >= _columnList.length) {
-      return 100.0; // Default width
+      return 100.0;
     }
 
     final columnConfig = _columnList[adjustedColumnIndex];
@@ -822,6 +881,28 @@ class _TableView2State extends State<TableView2> {
       );
     }
     return columnConfig.width;
+  }
+
+  double _getColumnWidth(int actualColumnIndex) {
+    final raw = _rawColumnWidth(actualColumnIndex);
+    final pinnedCount = widget.listViewConfig.fixedLeftColumns;
+    if (_viewportWidth <= 0 || actualColumnIndex >= pinnedCount) {
+      return raw;
+    }
+
+    var pinnedSum = 0.0;
+    for (var i = 0; i < pinnedCount; i++) {
+      pinnedSum += _rawColumnWidth(i);
+    }
+    final maxPinned = math.max(
+      pinnedCount * 40.0,
+      _viewportWidth - _minHorizontalScrollableArea,
+    );
+    if (pinnedSum <= maxPinned || pinnedSum <= 0) {
+      return raw;
+    }
+    // Scale pinned columns so unpinned area stays scrollable.
+    return raw * (maxPinned / pinnedSum);
   }
 
   double _pinnedColumnsWidth() {
