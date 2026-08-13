@@ -245,38 +245,41 @@ class _TableView2State extends State<TableView2> {
           _applyScrollMetricsForScrollbar(notification.metrics);
           return false;
         },
-        child: TableView.builder(
-          horizontalDetails: ScrollableDetails.horizontal(
-            controller: _horizontalScrollController,
-          ).copyWith(physics: const ClampingScrollPhysics()),
-          verticalDetails: ScrollableDetails.vertical(
-            controller: _verticalScrollController,
-          ).copyWith(physics: const ClampingScrollPhysics()),
-          rowCount: rowCount,
-          columnCount: totalColumns,
-          pinnedRowCount: widget.fixedRowCount,
-          cellBuilder: (context, vicinity) => _buildCell(context, vicinity),
-          pinnedColumnCount: widget.listViewConfig.fixedLeftColumns,
-          columnBuilder: (int index) => TableSpan(
-            extent: FixedTableSpanExtent(_getColumnWidth(index)),
-            foregroundDecoration: TableSpanDecoration(
-              border: TableSpanBorder(
-                leading: index == 0
-                    ? const BorderSide(color: Colors.grey, width: 0.4)
-                    : BorderSide.none,
-                trailing: const BorderSide(color: Colors.grey, width: 0.4),
+        child: ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+          child: TableView.builder(
+            horizontalDetails: ScrollableDetails.horizontal(
+              controller: _horizontalScrollController,
+            ).copyWith(physics: const ClampingScrollPhysics()),
+            verticalDetails: ScrollableDetails.vertical(
+              controller: _verticalScrollController,
+            ).copyWith(physics: const ClampingScrollPhysics()),
+            rowCount: rowCount,
+            columnCount: totalColumns,
+            pinnedRowCount: widget.fixedRowCount,
+            cellBuilder: (context, vicinity) => _buildCell(context, vicinity),
+            pinnedColumnCount: widget.listViewConfig.fixedLeftColumns,
+            columnBuilder: (int index) => TableSpan(
+              extent: FixedTableSpanExtent(_getColumnWidth(index)),
+              foregroundDecoration: TableSpanDecoration(
+                border: TableSpanBorder(
+                  leading: index == 0
+                      ? const BorderSide(color: Colors.grey, width: 1)
+                      : BorderSide.none,
+                  trailing: const BorderSide(color: Colors.grey, width: 1),
+                ),
               ),
             ),
-          ),
-          rowBuilder: (int index) => TableSpan(
-            extent: FixedTableSpanExtent(
-              index < widget.fixedRowCount
-                  ? widget.headingRowHeight
-                  : _effectiveDataRowHeightAt(index - widget.fixedRowCount),
-            ),
-            foregroundDecoration: const TableSpanDecoration(
-              border: TableSpanBorder(
-                trailing: BorderSide(color: Colors.grey, width: 0.4),
+            rowBuilder: (int index) => TableSpan(
+              extent: FixedTableSpanExtent(
+                index < widget.fixedRowCount
+                    ? widget.headingRowHeight
+                    : _effectiveDataRowHeightAt(index - widget.fixedRowCount),
+              ),
+              foregroundDecoration: const TableSpanDecoration(
+                border: TableSpanBorder(
+                  trailing: BorderSide(color: Colors.grey, width: 1),
+                ),
               ),
             ),
           ),
