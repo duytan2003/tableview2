@@ -33,7 +33,7 @@ class TableView2 extends StatefulWidget {
     this.enableColumnResize = true,
     this.resizeHandleWidth = 14.0,
     this.enableRowResize = true,
-    this.resizeHandleHeight = 6.0,
+    this.resizeHandleHeight = 8.0,
     this.minDataRowHeight = 44.0,
     this.maxDataRowHeight = 400.0,
   });
@@ -245,38 +245,41 @@ class _TableView2State extends State<TableView2> {
           _applyScrollMetricsForScrollbar(notification.metrics);
           return false;
         },
-        child: TableView.builder(
-          horizontalDetails: ScrollableDetails.horizontal(
-            controller: _horizontalScrollController,
-          ).copyWith(physics: const ClampingScrollPhysics()),
-          verticalDetails: ScrollableDetails.vertical(
-            controller: _verticalScrollController,
-          ).copyWith(physics: const ClampingScrollPhysics()),
-          rowCount: rowCount,
-          columnCount: totalColumns,
-          pinnedRowCount: widget.fixedRowCount,
-          cellBuilder: (context, vicinity) => _buildCell(context, vicinity),
-          pinnedColumnCount: widget.listViewConfig.fixedLeftColumns,
-          columnBuilder: (int index) => TableSpan(
-            extent: FixedTableSpanExtent(_getColumnWidth(index)),
-            foregroundDecoration: TableSpanDecoration(
-              border: TableSpanBorder(
-                leading: index == 0
-                    ? const BorderSide(color: Colors.grey, width: 0.4)
-                    : BorderSide.none,
-                trailing: const BorderSide(color: Colors.grey, width: 0.4),
+        child: ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+          child: TableView.builder(
+            horizontalDetails: ScrollableDetails.horizontal(
+              controller: _horizontalScrollController,
+            ).copyWith(physics: const ClampingScrollPhysics()),
+            verticalDetails: ScrollableDetails.vertical(
+              controller: _verticalScrollController,
+            ).copyWith(physics: const ClampingScrollPhysics()),
+            rowCount: rowCount,
+            columnCount: totalColumns,
+            pinnedRowCount: widget.fixedRowCount,
+            cellBuilder: (context, vicinity) => _buildCell(context, vicinity),
+            pinnedColumnCount: widget.listViewConfig.fixedLeftColumns,
+            columnBuilder: (int index) => TableSpan(
+              extent: FixedTableSpanExtent(_getColumnWidth(index)),
+              foregroundDecoration: TableSpanDecoration(
+                border: TableSpanBorder(
+                  leading: index == 0
+                      ? const BorderSide(color: Colors.grey, width: 0.4)
+                      : BorderSide.none,
+                  trailing: const BorderSide(color: Colors.grey, width: 0.4),
+                ),
               ),
             ),
-          ),
-          rowBuilder: (int index) => TableSpan(
-            extent: FixedTableSpanExtent(
-              index < widget.fixedRowCount
-                  ? widget.headingRowHeight
-                  : _effectiveDataRowHeightAt(index - widget.fixedRowCount),
-            ),
-            foregroundDecoration: const TableSpanDecoration(
-              border: TableSpanBorder(
-                trailing: BorderSide(color: Colors.grey, width: 0.4),
+            rowBuilder: (int index) => TableSpan(
+              extent: FixedTableSpanExtent(
+                index < widget.fixedRowCount
+                    ? widget.headingRowHeight
+                    : _effectiveDataRowHeightAt(index - widget.fixedRowCount),
+              ),
+              foregroundDecoration: const TableSpanDecoration(
+                border: TableSpanBorder(
+                  trailing: BorderSide(color: Colors.grey, width: 0.4),
+                ),
               ),
             ),
           ),
@@ -607,82 +610,85 @@ class _TableView2State extends State<TableView2> {
         widget.enableColumnResize &&
         columnConfig.range == null &&
         columnConfig.maxWidth > columnConfig.minWidth;
-    return Container(
-      color: widget.tableHeaderColor,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      alignment: shouldCenter ? Alignment.center : Alignment.centerLeft,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Row(
-            mainAxisAlignment: isSortable == true
-                ? MainAxisAlignment.spaceBetween
-                : shouldCenter
-                ? MainAxisAlignment.center
-                : MainAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  text,
-                  style: const TextStyle(color: Colors.white),
-                  overflow: TextOverflow.visible,
-                  textAlign: shouldCenter ? TextAlign.center : TextAlign.left,
+    // Stack fills the whole cell so the resize handle sits on the real
+    // column border — not inset by content padding.
+    return Stack(
+      fit: StackFit.expand,
+      clipBehavior: Clip.none,
+      children: [
+        ColoredBox(
+          color: widget.tableHeaderColor,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Row(
+              mainAxisAlignment: isSortable
+                  ? MainAxisAlignment.spaceBetween
+                  : shouldCenter
+                  ? MainAxisAlignment.center
+                  : MainAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    text,
+                    style: const TextStyle(color: Colors.white),
+                    overflow: TextOverflow.visible,
+                    textAlign: shouldCenter ? TextAlign.center : TextAlign.left,
+                  ),
                 ),
-              ),
-              if (isSortable)
-                Padding(
-                  padding: const EdgeInsets.only(right: 4),
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => widget.onSort?.call(
-                      index,
-                      widget.sortAscending ?? true,
-                    ),
-                    child: SvgPicture.asset(
-                      TableView2.getSortIcon(
-                        widget.sortColumnIndex ?? 0,
+                if (isSortable)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => widget.onSort?.call(
                         index,
                         widget.sortAscending ?? true,
                       ),
-                      package: 'tableview2',
-                      width: 12,
-                      height: 12,
-                      colorFilter: ColorFilter.mode(
-                        TableView2.getSortIconColor(
+                      child: SvgPicture.asset(
+                        TableView2.getSortIcon(
                           widget.sortColumnIndex ?? 0,
                           index,
                           widget.sortAscending ?? true,
-                          sortIconColor,
                         ),
-                        BlendMode.srcIn,
+                        package: 'tableview2',
+                        width: 12,
+                        height: 12,
+                        colorFilter: ColorFilter.mode(
+                          TableView2.getSortIconColor(
+                            widget.sortColumnIndex ?? 0,
+                            index,
+                            widget.sortAscending ?? true,
+                            sortIconColor,
+                          ),
+                          BlendMode.srcIn,
+                        ),
                       ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
-
-          if (canResize)
-            Positioned(
-              top: 0,
-              bottom: 0,
-              right: -(widget.resizeHandleWidth / 2),
-              width: widget.resizeHandleWidth,
-              child: MouseRegion(
-                cursor: SystemMouseCursors.resizeColumn,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onHorizontalDragStart: (_) =>
-                      _onColumnResizeStart(columnConfig),
-                  onHorizontalDragUpdate: (details) =>
-                      _onColumnResizeUpdate(columnConfig, details),
-                  onHorizontalDragEnd: (_) => _onColumnResizeEnd(),
-                  child: const ColoredBox(color: Colors.transparent),
-                ),
+        ),
+        if (canResize)
+          Positioned(
+            top: 0,
+            bottom: 0,
+            right: -(widget.resizeHandleWidth / 2),
+            width: widget.resizeHandleWidth,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.resizeColumn,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onHorizontalDragStart: (_) =>
+                    _onColumnResizeStart(columnConfig),
+                onHorizontalDragUpdate: (details) =>
+                    _onColumnResizeUpdate(columnConfig, details),
+                onHorizontalDragEnd: (_) => _onColumnResizeEnd(),
+                child: const ColoredBox(color: Colors.transparent),
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 
