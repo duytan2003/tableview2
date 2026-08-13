@@ -59,7 +59,7 @@ class TableColumnConfig extends Equatable {
   final double _width;
   final String key;
   final bool isCenter;
-  final bool isSortable;
+  final bool isFilter;
   final bool isShow;
   final double minWidth;
   final double maxWidth;
@@ -71,7 +71,7 @@ class TableColumnConfig extends Equatable {
     required double width,
     required this.key,
     this.isCenter = true,
-    this.isSortable = false,
+    this.isFilter = false,
     this.minWidth = 50.0,
     this.maxWidth = 1000.0,
     this.isCanFreezed = true,
@@ -89,7 +89,7 @@ class TableColumnConfig extends Equatable {
     double? width,
     String? key,
     bool? isCenter,
-    bool? isSortable,
+    bool? isFilter,
     bool? isShow,
     double? minWidth,
     double? maxWidth,
@@ -100,7 +100,7 @@ class TableColumnConfig extends Equatable {
     width: width ?? _width,
     key: key ?? this.key,
     isCenter: isCenter ?? this.isCenter,
-    isSortable: isSortable ?? this.isSortable,
+    isFilter: isFilter ?? this.isFilter,
     isShow: isShow ?? this.isShow,
     minWidth: minWidth ?? this.minWidth,
     maxWidth: maxWidth ?? this.maxWidth,
@@ -126,7 +126,7 @@ class TableColumnConfig extends Equatable {
     _width,
     key,
     isCenter,
-    isSortable,
+    isFilter,
     isShow,
     minWidth,
     maxWidth,

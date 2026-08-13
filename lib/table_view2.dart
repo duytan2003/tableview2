@@ -25,7 +25,7 @@ class TableView2 extends StatefulWidget {
     required this.headingRowHeight,
     required this.listViewConfig,
     required this.onConfigUpdated,
-    this.onSort,
+    this.onFilter,
     this.sortColumnIndex,
     this.sortAscending,
     this.fixedRowCount = 1,
@@ -48,7 +48,7 @@ class TableView2 extends StatefulWidget {
   final double headingRowHeight;
   final ListViewConfigModel listViewConfig;
   final Function(TableColumnConfig) onConfigUpdated;
-  final void Function(int, bool)? onSort;
+  final void Function(TableColumnConfig)? onFilter;
   final int? sortColumnIndex;
   final bool? sortAscending;
   final int fixedRowCount;
@@ -108,19 +108,6 @@ class TableView2 extends StatefulWidget {
       return Colors.transparent;
     }),
   );
-  static String getSortIcon(
-    int sortColumnIndex,
-    int currentIndex,
-    bool sortAscending,
-  ) {
-    if (sortColumnIndex == currentIndex && sortAscending) {
-      return 'assets/actions/ico_listview_sort_up.svg';
-    } else if (sortColumnIndex == currentIndex && !sortAscending) {
-      return 'assets/actions/ico_listview_sort_down.svg';
-    } else {
-      return 'assets/actions/ico_listview_sort_none.svg';
-    }
-  }
 
   static Color getSortIconColor(
     int sortColumnIndex,
@@ -420,7 +407,7 @@ class _TableView2State extends State<TableView2> {
           : const SizedBox.shrink();
       cell = TableViewCell(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
           child: InkWell(
             hoverColor: Colors.transparent,
             splashColor: Colors.transparent,
@@ -637,7 +624,7 @@ class _TableView2State extends State<TableView2> {
     required Color sortIconColor,
   }) {
     final shouldCenter = columnConfig.isCenter;
-    final isSortable = columnConfig.isSortable;
+    final isFilter = columnConfig.isFilter;
     final canResize =
         widget.enableColumnResize &&
         columnConfig.range == null &&
@@ -651,9 +638,9 @@ class _TableView2State extends State<TableView2> {
         ColoredBox(
           color: widget.tableHeaderColor,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
             child: Row(
-              mainAxisAlignment: isSortable
+              mainAxisAlignment: isFilter
                   ? MainAxisAlignment.spaceBetween
                   : shouldCenter
                   ? MainAxisAlignment.center
@@ -667,32 +654,23 @@ class _TableView2State extends State<TableView2> {
                     textAlign: shouldCenter ? TextAlign.center : TextAlign.left,
                   ),
                 ),
-                if (isSortable)
+                if (isFilter)
                   Padding(
                     padding: const EdgeInsets.only(right: 4),
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => widget.onSort?.call(
-                        index,
-                        widget.sortAscending ?? true,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
                       ),
-                      child: SvgPicture.asset(
-                        TableView2.getSortIcon(
-                          widget.sortColumnIndex ?? 0,
-                          index,
-                          widget.sortAscending ?? true,
-                        ),
-                        package: 'tableview2',
-                        width: 12,
-                        height: 12,
-                        colorFilter: ColorFilter.mode(
-                          TableView2.getSortIconColor(
-                            widget.sortColumnIndex ?? 0,
-                            index,
-                            widget.sortAscending ?? true,
-                            sortIconColor,
-                          ),
-                          BlendMode.srcIn,
+                      padding: const EdgeInsets.all(2),
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => widget.onFilter?.call(columnConfig),
+                        child: SvgPicture.asset(
+                          'assets/actions/ico_filter.svg',
+                          package: 'tableview2',
+                          width: 14,
+                          height: 14,
                         ),
                       ),
                     ),

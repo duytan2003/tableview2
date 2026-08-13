@@ -56,8 +56,6 @@ class _TableView2DemoPageState extends State<TableView2DemoPage> {
   late ListViewConfigModel _listViewConfig;
   final ValueNotifier<int> _hoveredIndexNotifier = ValueNotifier<int>(-1);
 
-  int? _sortColumnIndex;
-  bool _sortAscending = true;
   bool _showEmptyState = false;
 
   @override
@@ -653,14 +651,14 @@ class _TableView2DemoPageState extends State<TableView2DemoPage> {
           title: 'Mã NV',
           key: 'id',
           width: 100,
-          isSortable: true,
+          isFilter: true,
           isCenter: false,
         ),
         const TableColumnConfig(
           title: 'Họ tên',
           key: 'name',
           width: 180,
-          isSortable: true,
+          isFilter: true,
           isCenter: false,
         ),
         TableColumnConfig(
@@ -676,7 +674,7 @@ class _TableView2DemoPageState extends State<TableView2DemoPage> {
                 title: 'Email',
                 key: 'email',
                 width: 180,
-                isSortable: true,
+                isFilter: true,
                 isCenter: false,
               ),
               TableColumnConfig(
@@ -692,14 +690,14 @@ class _TableView2DemoPageState extends State<TableView2DemoPage> {
           title: 'Phòng ban',
           key: 'department',
           width: 140,
-          isSortable: true,
+          isFilter: true,
           isCenter: false,
         ),
         const TableColumnConfig(
           title: 'Lương',
           key: 'salary',
           width: 120,
-          isSortable: true,
+          isFilter: true,
           isCenter: true,
         ),
         const TableColumnConfig(
@@ -740,64 +738,10 @@ class _TableView2DemoPageState extends State<TableView2DemoPage> {
     });
   }
 
-  void _onSort(int columnIndex, bool ascending) {
-    setState(() {
-      if (_sortColumnIndex == columnIndex) {
-        _sortAscending = !_sortAscending;
-      } else {
-        _sortColumnIndex = columnIndex;
-        _sortAscending = ascending;
-      }
-
-      final sortKey = _sortKeyForColumn(columnIndex);
-      if (sortKey == null) return;
-
-      _employees.sort((a, b) {
-        final comparison = _compareByKey(a, b, sortKey);
-        return _sortAscending ? comparison : -comparison;
-      });
-    });
-  }
-
-  String? _sortKeyForColumn(int columnIndex) {
-    if (_listViewConfig.isHaveCheckBox) {
-      columnIndex -= 1;
-    }
-    if (columnIndex < 0) return null;
-
-    final flatColumns = <TableColumnConfig>[];
-    for (final column in _listViewConfig.columns) {
-      if (column.range != null && column.range!.columns.isNotEmpty) {
-        if (!column.isShow) continue;
-        flatColumns.addAll(column.range!.columns.where((sub) => sub.isShow));
-      } else if (column.isShow) {
-        flatColumns.add(column);
-      }
-    }
-
-    if (columnIndex >= flatColumns.length) return null;
-    return flatColumns[columnIndex].key;
-  }
-
-  int _compareByKey(Employee a, Employee b, String key) {
-    switch (key) {
-      case 'id':
-        return a.id.compareTo(b.id);
-      case 'name':
-        return a.name.compareTo(b.name);
-      case 'email':
-        return a.email.compareTo(b.email);
-      case 'phone':
-        return a.phone.compareTo(b.phone);
-      case 'department':
-        return a.department.compareTo(b.department);
-      case 'salary':
-        return a.salary.compareTo(b.salary);
-      case 'status':
-        return a.status.compareTo(b.status);
-      default:
-        return 0;
-    }
+  void _onFilter(TableColumnConfig column) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Filter: ${column.title} (${column.key})')),
+    );
   }
 
   List<DataRowTableView> _buildRows() {
@@ -917,9 +861,7 @@ class _TableView2DemoPageState extends State<TableView2DemoPage> {
                       });
                     },
                     onSelectAll: _onSelectAll,
-                    onSort: _onSort,
-                    sortColumnIndex: _sortColumnIndex,
-                    sortAscending: _sortAscending,
+                    onFilter: _onFilter,
                     hoveredIndexNotifier: _hoveredIndexNotifier,
                     emptyMessage: 'Không có nhân viên nào',
                   ),
