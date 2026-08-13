@@ -32,6 +32,7 @@ TableColumnConfig _$TableColumnConfigFromJson(Map<String, dynamic> json) =>
       minWidth: (json['minWidth'] as num?)?.toDouble() ?? 50.0,
       maxWidth: (json['maxWidth'] as num?)?.toDouble() ?? 1000.0,
       isCanFreezed: json['isCanFreezed'] as bool? ?? true,
+      isShow: json['isShow'] as bool? ?? true,
       range: json['range'] == null
           ? null
           : RangeData.fromJson(json['range'] as Map<String, dynamic>),
@@ -43,6 +44,7 @@ Map<String, dynamic> _$TableColumnConfigToJson(TableColumnConfig instance) =>
       'key': instance.key,
       'isCenter': instance.isCenter,
       'isSortable': instance.isSortable,
+      'isShow': instance.isShow,
       'minWidth': instance.minWidth,
       'maxWidth': instance.maxWidth,
       'isCanFreezed': instance.isCanFreezed,

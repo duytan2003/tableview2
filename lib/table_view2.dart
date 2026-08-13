@@ -44,7 +44,7 @@ class TableView2 extends StatefulWidget {
   final double dataRowHeight;
   final double headingRowHeight;
   final ListViewConfigModel listViewConfig;
-  final Function(TableColumnConfig, bool) onConfigUpdated;
+  final Function(TableColumnConfig) onConfigUpdated;
   final void Function(int, bool)? onSort;
   final int? sortColumnIndex;
   final bool? sortAscending;
@@ -376,6 +376,13 @@ class _TableView2State extends State<TableView2> {
     final int dataRow = vicinity.row - widget.fixedRowCount;
     if (dataRow >= 0 && dataRow < widget.rows.length) {
       final row = widget.rows[dataRow];
+      final cellIndex = _cellIndexForVisibleColumn(adjustedColumnIndex);
+      final dataChild = (cellIndex >= 0 && cellIndex < row.cells.length)
+          ? TableCellWrapper(
+              isCenter: isAlignCenter,
+              child: row.cells[cellIndex],
+            )
+          : const SizedBox.shrink();
       cell = TableViewCell(
         child: InkWell(
           hoverColor: Colors.transparent,
@@ -400,10 +407,7 @@ class _TableView2State extends State<TableView2> {
             alignment: isAlignCenter ? Alignment.center : Alignment.centerLeft,
             child: _wrapDataCellWithRowResizeHandle(
               dataRowIndex: dataRow,
-              child: TableCellWrapper(
-                isCenter: isAlignCenter,
-                child: row.cells[adjustedColumnIndex],
-              ),
+              child: dataChild,
             ),
           ),
         ),
@@ -695,10 +699,7 @@ class _TableView2State extends State<TableView2> {
       columnConfig.maxWidth,
     );
     final updatedConfig = columnConfig.copyWith(width: targetWidth);
-    widget.onConfigUpdated(
-      updatedConfig,
-      widget.listViewConfig.isFixedColumn(columnConfig),
-    );
+    widget.onConfigUpdated(updatedConfig);
   }
 
   void _onColumnResizeEnd() {
@@ -707,26 +708,62 @@ class _TableView2State extends State<TableView2> {
     _resizeStartWidth = 0;
   }
 
-  // Tính tổng số cột thực tế (bao gồm các sub-columns trong grouped columns)
-  int _getTotalColumnsCount() {
-    int total = 0;
-    for (final column in widget.listViewConfig.columns) {
-      if (column.range != null && column.range!.columns.isNotEmpty) {
-        total += column.range!.columns.length;
-      } else {
-        total += 1; // singleColumn
-      }
+  // Tính tổng số cột đang hiển thị (isShow == true)
+  int _getTotalColumnsCount() => _columnList.length;
+
+  /// Index trong `row.cells` (flat đầy đủ, kể cả cột ẩn) tương ứng cột visible.
+  int _cellIndexForVisibleColumn(int visibleColumnIndex) {
+    final indices = _visibleCellIndices;
+    if (visibleColumnIndex < 0 || visibleColumnIndex >= indices.length) {
+      return visibleColumnIndex;
     }
-    return total;
+    return indices[visibleColumnIndex];
   }
 
-  TableColumnConfig? _getGroupColumn(int actualColumnIndex) {
+  List<int> get _visibleCellIndices {
+    final indices = <int>[];
+    var cellIndex = 0;
     for (final column in widget.listViewConfig.columns) {
       if (column.range != null && column.range!.columns.isNotEmpty) {
-        if (actualColumnIndex >= column.range!.start &&
-            actualColumnIndex <= column.range!.end) {
-          return column;
+        if (!column.isShow) {
+          cellIndex += column.range!.columns.length;
+          continue;
         }
+        for (final sub in column.range!.columns) {
+          if (sub.isShow) indices.add(cellIndex);
+          cellIndex++;
+        }
+      } else {
+        if (column.isShow) indices.add(cellIndex);
+        cellIndex++;
+      }
+    }
+    return indices;
+  }
+
+  TableColumnConfig? _getGroupColumn(int visibleColumnIndex) {
+    var visibleIdx = 0;
+    for (final column in widget.listViewConfig.columns) {
+      if (column.range != null && column.range!.columns.isNotEmpty) {
+        if (!column.isShow) continue;
+        final visibleSubs = column.range!.columns
+            .where((c) => c.isShow)
+            .toList();
+        if (visibleSubs.isEmpty) continue;
+        final start = visibleIdx;
+        final end = visibleIdx + visibleSubs.length - 1;
+        if (visibleColumnIndex >= start && visibleColumnIndex <= end) {
+          return column.copyWith(
+            range: column.range!.copyWith(
+              start: start,
+              end: end,
+              columns: visibleSubs,
+            ),
+          );
+        }
+        visibleIdx += visibleSubs.length;
+      } else if (column.isShow) {
+        visibleIdx++;
       }
     }
     return null;
@@ -737,11 +774,11 @@ class _TableView2State extends State<TableView2> {
 
     for (final column in widget.listViewConfig.columns) {
       if (column.range != null && column.range!.columns.isNotEmpty) {
-        // Grouped column
-        for (int i = 0; i < column.range!.columns.length; i++) {
-          columnList.add(column.range!.columns[i]);
+        if (!column.isShow) continue;
+        for (final sub in column.range!.columns) {
+          if (sub.isShow) columnList.add(sub);
         }
-      } else {
+      } else if (column.isShow) {
         columnList.add(column);
       }
     }
@@ -749,17 +786,8 @@ class _TableView2State extends State<TableView2> {
     return columnList;
   }
 
-  bool _isGroupedColumn(int actualColumnIndex) {
-    for (final column in widget.listViewConfig.columns) {
-      if (column.range != null && column.range!.columns.isNotEmpty) {
-        if (actualColumnIndex >= column.range!.start &&
-            actualColumnIndex <= column.range!.end) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
+  bool _isGroupedColumn(int visibleColumnIndex) =>
+      _getGroupColumn(visibleColumnIndex) != null;
 
   double _getColumnWidth(int actualColumnIndex) {
     // Handle checkbox column

@@ -60,6 +60,7 @@ class TableColumnConfig extends Equatable {
   final String key;
   final bool isCenter;
   final bool isSortable;
+  final bool isShow;
   final double minWidth;
   final double maxWidth;
   final bool isCanFreezed;
@@ -74,6 +75,7 @@ class TableColumnConfig extends Equatable {
     this.minWidth = 50.0,
     this.maxWidth = 1000.0,
     this.isCanFreezed = true,
+    this.isShow = true,
     this.range,
   }) : _width = width;
 
@@ -88,6 +90,7 @@ class TableColumnConfig extends Equatable {
     String? key,
     bool? isCenter,
     bool? isSortable,
+    bool? isShow,
     double? minWidth,
     double? maxWidth,
     bool? isCanFreezed,
@@ -98,14 +101,18 @@ class TableColumnConfig extends Equatable {
     key: key ?? this.key,
     isCenter: isCenter ?? this.isCenter,
     isSortable: isSortable ?? this.isSortable,
+    isShow: isShow ?? this.isShow,
     minWidth: minWidth ?? this.minWidth,
     maxWidth: maxWidth ?? this.maxWidth,
     isCanFreezed: isCanFreezed ?? this.isCanFreezed,
     range: range ?? this.range,
   );
-  double get width => range != null
-      ? range!.columns.map((e) => e.width).reduce((a, b) => a + b)
-      : _width;
+  double get width {
+    if (range == null) return _width;
+    final visible = range!.columns.where((e) => e.isShow);
+    if (visible.isEmpty) return 0;
+    return visible.map((e) => e.width).reduce((a, b) => a + b);
+  }
 
   /// Check if this column is part of a merged group
   bool get isMerged => range != null;
@@ -120,8 +127,10 @@ class TableColumnConfig extends Equatable {
     key,
     isCenter,
     isSortable,
+    isShow,
     minWidth,
     maxWidth,
+    isCanFreezed,
     range,
   ];
 
