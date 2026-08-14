@@ -64,6 +64,7 @@ class TableColumnConfig extends Equatable {
   final double minWidth;
   final double maxWidth;
   final bool isCanFreezed;
+  final bool isActiveFilter;
   final RangeData? range;
 
   const TableColumnConfig({
@@ -76,6 +77,7 @@ class TableColumnConfig extends Equatable {
     this.maxWidth = 1000.0,
     this.isCanFreezed = true,
     this.isShow = true,
+    this.isActiveFilter = false,
     this.range,
   }) : _width = width;
 
@@ -94,6 +96,7 @@ class TableColumnConfig extends Equatable {
     double? minWidth,
     double? maxWidth,
     bool? isCanFreezed,
+    bool? isActiveFilter,
     RangeData? range,
   }) => TableColumnConfig(
     title: title ?? this.title,
@@ -106,6 +109,7 @@ class TableColumnConfig extends Equatable {
     maxWidth: maxWidth ?? this.maxWidth,
     isCanFreezed: isCanFreezed ?? this.isCanFreezed,
     range: range ?? this.range,
+    isActiveFilter: isActiveFilter ?? this.isActiveFilter,
   );
   double get width {
     if (range == null) return _width;
@@ -131,6 +135,7 @@ class TableColumnConfig extends Equatable {
     minWidth,
     maxWidth,
     isCanFreezed,
+    isActiveFilter,
     range,
   ];
 

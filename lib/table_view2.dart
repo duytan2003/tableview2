@@ -39,6 +39,7 @@ class TableView2 extends StatefulWidget {
     this.resizeHandleHeight = 8.0,
     this.minDataRowHeight = 44.0,
     this.maxDataRowHeight = 400.0,
+    this.filterIcon,
   });
   final Widget? empty;
   final String? emptyMessage;
@@ -58,6 +59,7 @@ class TableView2 extends StatefulWidget {
   final Color sortIconColor;
   final bool enableColumnResize;
   final double resizeHandleWidth;
+  final Widget? filterIcon;
 
   /// Drag the bottom border of data rows to change row height (session only).
   final bool enableRowResize;
@@ -666,12 +668,14 @@ class _TableView2State extends State<TableView2> {
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () => widget.onFilter?.call(columnConfig),
-                        child: SvgPicture.asset(
-                          'assets/actions/ico_filter.svg',
-                          package: 'tableview2',
-                          width: 14,
-                          height: 14,
-                        ),
+                        child:
+                            widget.filterIcon ??
+                            SvgPicture.asset(
+                              'assets/actions/ico_filter.svg',
+                              package: 'tableview2',
+                              width: 14,
+                              height: 14,
+                            ),
                       ),
                     ),
                   ),
