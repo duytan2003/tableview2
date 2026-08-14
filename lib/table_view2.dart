@@ -233,12 +233,7 @@ class _TableView2State extends State<TableView2> {
   Widget _buildTableView() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        const verticalScrollbarWidth = 12.0;
-        const horizontalScrollbarHeight = 16.0;
-        _viewportWidth = math.max(
-          0.0,
-          constraints.maxWidth - verticalScrollbarWidth,
-        );
+        _viewportWidth = constraints.maxWidth;
         final totalColumns =
             _getTotalColumnsCount() +
             (widget.listViewConfig.isHaveCheckBox ? 1 : 0);
@@ -250,7 +245,7 @@ class _TableView2State extends State<TableView2> {
           math.max(0.0, _viewportWidth - 48),
         );
         final table = Padding(
-          padding: const EdgeInsets.only(bottom: horizontalScrollbarHeight),
+          padding: const EdgeInsets.only(bottom: 14),
           child: NotificationListener<ScrollNotification>(
             onNotification: (notification) {
               _applyScrollMetricsForScrollbar(notification.metrics);
