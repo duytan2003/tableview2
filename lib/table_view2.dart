@@ -40,6 +40,7 @@ class TableView2 extends StatefulWidget {
     this.minDataRowHeight = 44.0,
     this.maxDataRowHeight = 400.0,
     this.filterIcon,
+    this.headingTextStyle,
   });
   final Widget? empty;
   final String? emptyMessage;
@@ -59,6 +60,7 @@ class TableView2 extends StatefulWidget {
   final Color sortIconColor;
   final bool enableColumnResize;
   final double resizeHandleWidth;
+  final TextStyle? headingTextStyle;
   final Widget Function(bool isActiveFilter)? filterIcon;
 
   /// Drag the bottom border of data rows to change row height (session only).
@@ -651,7 +653,9 @@ class _TableView2State extends State<TableView2> {
                 Expanded(
                   child: Text(
                     text,
-                    style: const TextStyle(color: Colors.white),
+                    style:
+                        widget.headingTextStyle ??
+                        const TextStyle(color: Colors.white),
                     overflow: TextOverflow.visible,
                     textAlign: shouldCenter ? TextAlign.center : TextAlign.left,
                   ),
