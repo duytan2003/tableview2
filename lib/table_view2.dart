@@ -297,9 +297,15 @@ class _TableView2State extends State<TableView2> {
                             index - widget.fixedRowCount,
                           ),
                   ),
-                  foregroundDecoration: const TableSpanDecoration(
+                  foregroundDecoration: TableSpanDecoration(
                     border: TableSpanBorder(
-                      trailing: BorderSide(color: Colors.grey, width: 0.4),
+                      leading: index == 0
+                          ? const BorderSide(color: Colors.grey, width: 0.4)
+                          : BorderSide.none,
+                      trailing: const BorderSide(
+                        color: Colors.grey,
+                        width: 0.4,
+                      ),
                     ),
                   ),
                 ),

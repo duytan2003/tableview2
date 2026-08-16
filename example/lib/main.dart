@@ -837,35 +837,28 @@ class _TableView2DemoPageState extends State<TableView2DemoPage> {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: TableView2(
-                    rows: rows,
-                    dataRowHeight: _dataRowHeight,
-                    headingRowHeight: _headingRowHeight,
-                    fixedRowCount: 2,
-                    listViewConfig: _listViewConfig,
-                    onConfigUpdated: (column) {
-                      final result = _listViewConfig
-                          .updateColumnAndCalculateFixed(column);
-                      setState(() {
-                        _listViewConfig = _listViewConfig.copyWith(
-                          columns: result.columns,
-                          fixedLeftColumns: result.fixedLeftColumns,
-                        );
-                      });
-                    },
-                    onSelectAll: _onSelectAll,
-                    onFilter: _onFilter,
-                    hoveredIndexNotifier: _hoveredIndexNotifier,
-                    emptyMessage: 'Không có nhân viên nào',
-                  ),
-                ),
+              child: TableView2(
+                rows: rows,
+                dataRowHeight: _dataRowHeight,
+                headingRowHeight: _headingRowHeight,
+                fixedRowCount: 2,
+                listViewConfig: _listViewConfig,
+                onConfigUpdated: (column) {
+                  final result = _listViewConfig.updateColumnAndCalculateFixed(
+                    column,
+                  );
+                  setState(() {
+                    _listViewConfig = _listViewConfig.copyWith(
+                      columns: result.columns,
+                      fixedLeftColumns: result.fixedLeftColumns,
+                    );
+                  });
+                },
+                onSelectAll: _onSelectAll,
+                tableHeaderColor: Color(0xFFE9E9E9),
+                onFilter: _onFilter,
+                hoveredIndexNotifier: _hoveredIndexNotifier,
+                emptyMessage: 'Không có nhân viên nào',
               ),
             ),
           ],
