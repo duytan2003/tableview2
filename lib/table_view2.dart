@@ -669,19 +669,14 @@ class _TableView2State extends State<TableView2> {
                 if (isFilter)
                   InkWell(
                     onTap: () => widget.onFilter?.call(columnConfig),
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 4.0),
-                      child:
-                          widget.filterIcon?.call(
-                            columnConfig.isActiveFilter,
-                          ) ??
-                          SvgPicture.asset(
-                            'assets/actions/ico_filter.svg',
-                            package: 'tableview2',
-                            width: 14,
-                            height: 14,
-                          ),
-                    ),
+                    child:
+                        widget.filterIcon?.call(columnConfig.isActiveFilter) ??
+                        SvgPicture.asset(
+                          'assets/actions/ico_filter.svg',
+                          package: 'tableview2',
+                          width: 14,
+                          height: 14,
+                        ),
                   ),
               ],
             ),
