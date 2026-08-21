@@ -66,6 +66,7 @@ class TableColumnConfig extends Equatable {
   final bool isCanFreezed;
   final bool isActiveFilter;
   final RangeData? range;
+  final bool isFlexible;
 
   const TableColumnConfig({
     required this.title,
@@ -73,12 +74,13 @@ class TableColumnConfig extends Equatable {
     required this.key,
     this.isCenter = true,
     this.isFilter = false,
-    this.minWidth = 50.0,
+    this.minWidth = 70.0,
     this.maxWidth = 1000.0,
     this.isCanFreezed = true,
     this.isShow = true,
     this.isActiveFilter = false,
     this.range,
+    this.isFlexible = false,
   }) : _width = width;
 
   factory TableColumnConfig.fromJson(Map<String, dynamic> json) =>
@@ -97,6 +99,7 @@ class TableColumnConfig extends Equatable {
     double? maxWidth,
     bool? isCanFreezed,
     bool? isActiveFilter,
+    bool? isFlexible,
     RangeData? range,
   }) => TableColumnConfig(
     title: title ?? this.title,
@@ -110,6 +113,7 @@ class TableColumnConfig extends Equatable {
     isCanFreezed: isCanFreezed ?? this.isCanFreezed,
     range: range ?? this.range,
     isActiveFilter: isActiveFilter ?? this.isActiveFilter,
+    isFlexible: isFlexible ?? this.isFlexible,
   );
   double get width {
     if (range == null) return _width;
@@ -137,6 +141,7 @@ class TableColumnConfig extends Equatable {
     isCanFreezed,
     isActiveFilter,
     range,
+    isFlexible,
   ];
 
   TableColumnConfig updateTitleFromList(List<ColumnTitleInfo> updates) {
