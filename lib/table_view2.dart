@@ -419,35 +419,30 @@ class _TableView2State extends State<TableView2> {
             )
           : const SizedBox.shrink();
       cell = TableViewCell(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          child: InkWell(
-            hoverColor: Colors.transparent,
-            splashColor: Colors.transparent,
-            highlightColor: Colors.transparent,
-            focusColor: Colors.transparent,
-            onTap: () => row.onTap?.call(),
-            onSecondaryTapDown: (details) =>
-                row.onSecondaryTapDown?.call(details),
-            onDoubleTap: () {
-              if (row.onDoubleTap != null) {
-                row.onDoubleTap!.call();
-              } else {
-                row.onSelectChanged?.call(!row.isChecked);
-              }
-            },
-            onLongPress: () => row.onLongPress?.call(),
-            child: Container(
-              color: row.selected
-                  ? Colors.blueAccent.withValues(alpha: 0.1)
-                  : Colors.transparent,
-              alignment: isAlignCenter
-                  ? Alignment.center
-                  : Alignment.centerLeft,
-              child: _wrapDataCellWithRowResizeHandle(
-                dataRowIndex: dataRow,
-                child: dataChild,
-              ),
+        child: InkWell(
+          hoverColor: Colors.transparent,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+          focusColor: Colors.transparent,
+          onTap: () => row.onTap?.call(),
+          onSecondaryTapDown: (details) =>
+              row.onSecondaryTapDown?.call(details),
+          onDoubleTap: () {
+            if (row.onDoubleTap != null) {
+              row.onDoubleTap!.call();
+            } else {
+              row.onSelectChanged?.call(!row.isChecked);
+            }
+          },
+          onLongPress: () => row.onLongPress?.call(),
+          child: Container(
+            color: row.selected
+                ? Colors.blueAccent.withValues(alpha: 0.1)
+                : Colors.transparent,
+            alignment: isAlignCenter ? Alignment.center : Alignment.centerLeft,
+            child: _wrapDataCellWithRowResizeHandle(
+              dataRowIndex: dataRow,
+              child: dataChild,
             ),
           ),
         ),
