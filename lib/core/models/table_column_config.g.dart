@@ -28,14 +28,16 @@ TableColumnConfig _$TableColumnConfigFromJson(Map<String, dynamic> json) =>
       width: (json['width'] as num).toDouble(),
       key: json['key'] as String,
       isCenter: json['isCenter'] as bool? ?? true,
-      isFilter: json['isSortable'] as bool? ?? false,
-      minWidth: (json['minWidth'] as num?)?.toDouble() ?? 50.0,
+      isFilter: json['isFilter'] as bool? ?? false,
+      minWidth: (json['minWidth'] as num?)?.toDouble() ?? 70.0,
       maxWidth: (json['maxWidth'] as num?)?.toDouble() ?? 1000.0,
       isCanFreezed: json['isCanFreezed'] as bool? ?? true,
       isShow: json['isShow'] as bool? ?? true,
+      isActiveFilter: json['isActiveFilter'] as bool? ?? false,
       range: json['range'] == null
           ? null
           : RangeData.fromJson(json['range'] as Map<String, dynamic>),
+      isFlexible: json['isFlexible'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$TableColumnConfigToJson(TableColumnConfig instance) =>
@@ -43,11 +45,13 @@ Map<String, dynamic> _$TableColumnConfigToJson(TableColumnConfig instance) =>
       'title': instance.title,
       'key': instance.key,
       'isCenter': instance.isCenter,
-      'isSortable': instance.isFilter,
+      'isFilter': instance.isFilter,
       'isShow': instance.isShow,
       'minWidth': instance.minWidth,
       'maxWidth': instance.maxWidth,
       'isCanFreezed': instance.isCanFreezed,
+      'isActiveFilter': instance.isActiveFilter,
       'range': instance.range,
+      'isFlexible': instance.isFlexible,
       'width': instance.width,
     };
