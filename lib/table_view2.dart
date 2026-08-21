@@ -62,7 +62,8 @@ class TableView2 extends StatefulWidget {
   final bool enableColumnResize;
   final double resizeHandleWidth;
   final TextStyle? headingTextStyle;
-  final Widget? widgetTextHeader;
+  final Widget Function(BuildContext context, TableColumnConfig column)?
+  widgetTextHeader;
   final Widget Function(bool isActiveFilter)? filterIcon;
 
   /// Drag the bottom border of data rows to change row height (session only).
@@ -660,7 +661,7 @@ class _TableView2State extends State<TableView2> {
               children: [
                 Expanded(
                   child:
-                      widget.widgetTextHeader ??
+                      widget.widgetTextHeader?.call(context, columnConfig) ??
                       Text(
                         text,
                         style:
