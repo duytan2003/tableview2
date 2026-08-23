@@ -372,24 +372,17 @@ class _TableView2State extends State<TableView2> {
             groupColumn.range!.start +
             (widget.listViewConfig.isHaveCheckBox ? 1 : 0);
 
-        if (vicinity.column == adjustedStart) {
-          return TableViewCell(
-            columnMergeStart: adjustedStart,
-            columnMergeSpan: groupColumn.range!.length,
-            child: _headerCell(
-              groupColumn.range!.groupTitle,
-              context: context,
-              columnConfig: groupColumn,
-              index: vicinity.column,
-              sortIconColor: widget.sortIconColor,
-            ),
-          );
-        } else {
-          //empty cell
-          return TableViewCell(
-            child: ColoredBox(color: widget.tableHeaderColor),
-          );
-        }
+        return TableViewCell(
+          columnMergeStart: adjustedStart,
+          columnMergeSpan: groupColumn.range!.length,
+          child: _headerCell(
+            groupColumn.range!.groupTitle,
+            context: context,
+            columnConfig: groupColumn,
+            index: vicinity.column,
+            sortIconColor: widget.sortIconColor,
+          ),
+        );
       } else {
         // single Column
         return TableViewCell(
