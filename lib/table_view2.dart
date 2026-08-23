@@ -655,7 +655,8 @@ class _TableView2State extends State<TableView2> {
                         style:
                             widget.headingTextStyle ??
                             const TextStyle(color: Colors.white),
-                        overflow: TextOverflow.visible,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         textAlign: shouldCenter
                             ? TextAlign.center
                             : TextAlign.left,
