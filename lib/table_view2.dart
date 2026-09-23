@@ -401,10 +401,8 @@ class _TableView2State extends State<TableView2> {
     final columnConfig = _columnList[adjustedColumnIndex];
     final bool isAlignCenter = columnConfig.isCenter;
 
-    // Parent group header row — avoid TableView columnMerge for wide groups.
-    // Large columnMerge spans put every covered column into `_mergedColumns`,
-    // and two_dimensional_scrollables then fails while painting data rows
-    // (assert: vicinity not accounted for as covered by a merged cell).
+    // Parent group header row — real column merge. Every vicinity in the
+    // span must return the same child and the same merge metadata.
     if (vicinity.row == 0) {
       final groupColumn = _getGroupColumn(adjustedColumnIndex);
       if (groupColumn != null) {
@@ -489,49 +487,59 @@ class _TableView2State extends State<TableView2> {
     return cell;
   }
 
-  /// Group title without [TableViewCell.columnMergeStart] — paints across the
-  /// group's width via [OverflowBox] so wide parent headers stay scroll-safe.
   TableViewCell _buildGroupParentHeaderCell({
     required BuildContext context,
     required TableVicinity vicinity,
     required TableColumnConfig groupColumn,
   }) {
-    final adjustedStart =
-        groupColumn.range!.start +
-        (widget.listViewConfig.isHaveCheckBox ? 1 : 0);
-    final span = groupColumn.range!.length;
+    final checkboxOffset = widget.listViewConfig.isHaveCheckBox ? 1 : 0;
+    final groupStart = groupColumn.range!.start + checkboxOffset;
+    final groupEnd = groupStart + groupColumn.range!.length - 1;
+    final merge = _groupMergeForVicinity(
+      groupStart: groupStart,
+      groupEnd: groupEnd,
+      column: vicinity.column,
+    );
     final cacheKey =
-        '${groupColumn.key}_${adjustedStart}_$span'
+        'group_${groupColumn.key}_${merge.start}_${merge.span}'
         '_${groupColumn.range!.groupTitle}';
 
-    if (vicinity.column != adjustedStart) {
-      // Transparent so the start cell's OverflowBox title can paint across.
-      return const TableViewCell(child: ColoredBox(color: Colors.transparent));
+    return _groupHeaderChildCache.putIfAbsent(cacheKey, () {
+          final child = _headerCell(
+            groupColumn.range!.groupTitle,
+            context: context,
+            columnConfig: groupColumn,
+            index: merge.start,
+            sortIconColor: widget.sortIconColor,
+          );
+          if (merge.span <= 1) {
+            return TableViewCell(child: child);
+          }
+          return TableViewCell(
+            columnMergeStart: merge.start,
+            columnMergeSpan: merge.span,
+            child: child,
+          );
+        })
+        as TableViewCell;
+  }
+
+  ({int start, int span}) _groupMergeForVicinity({
+    required int groupStart,
+    required int groupEnd,
+    required int column,
+  }) {
+    final pinnedCount = widget.listViewConfig.fixedLeftColumns;
+    var start = groupStart;
+    var end = groupEnd;
+    if (groupStart < pinnedCount && groupEnd >= pinnedCount) {
+      if (column < pinnedCount) {
+        end = pinnedCount - 1;
+      } else {
+        start = pinnedCount;
+      }
     }
-
-    var groupWidth = 0.0;
-    for (var i = 0; i < span; i++) {
-      groupWidth += _getColumnWidth(adjustedStart + i);
-    }
-
-    final title = _groupHeaderChildCache.putIfAbsent(
-      cacheKey,
-      () => _headerCell(
-        groupColumn.range!.groupTitle,
-        context: context,
-        columnConfig: groupColumn,
-        index: adjustedStart,
-        sortIconColor: widget.sortIconColor,
-      ),
-    );
-
-    return TableViewCell(
-      child: _SpanningGroupHeader(
-        spanWidth: groupWidth,
-        backgroundColor: widget.tableHeaderColor,
-        child: title,
-      ),
-    );
+    return (start: start, span: end - start + 1);
   }
 
   TableViewCell _buildUngroupedHeaderCell({
@@ -1141,32 +1149,6 @@ class _RowHighlightController {
       token.dispose();
     }
     _tokens.clear();
-  }
-}
-
-/// Paints a group title across [spanWidth] without TableView column merging.
-class _SpanningGroupHeader extends StatelessWidget {
-  const _SpanningGroupHeader({
-    required this.spanWidth,
-    required this.backgroundColor,
-    required this.child,
-  });
-
-  final double spanWidth;
-  final Color backgroundColor;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: backgroundColor,
-      child: OverflowBox(
-        alignment: Alignment.centerLeft,
-        minWidth: spanWidth,
-        maxWidth: spanWidth,
-        child: SizedBox(width: spanWidth, child: child),
-      ),
-    );
   }
 }
 
