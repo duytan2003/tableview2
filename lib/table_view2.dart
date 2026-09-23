@@ -142,10 +142,6 @@ class _TableView2State extends State<TableView2> {
   late final ValueNotifier<ScrollMetrics?> _horizontalMetricsNotifier;
   late final ValueNotifier<ScrollMetrics?> _verticalMetricsNotifier;
   final _RowHighlightController _rowHighlight = _RowHighlightController();
-
-  /// Same [Widget] instance for every vicinity in a merged header region.
-  final Map<String, Widget> _groupHeaderChildCache = {};
-  Widget? _checkboxHeaderChild;
   String? _resizingColumnKey;
   double _resizeStartWidth = 0;
   bool _isResizingRowHeight = false;
@@ -180,14 +176,6 @@ class _TableView2State extends State<TableView2> {
   @override
   void didUpdateWidget(covariant TableView2 oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.listViewConfig != widget.listViewConfig ||
-        oldWidget.tableHeaderColor != widget.tableHeaderColor ||
-        oldWidget.fixedRowCount != widget.fixedRowCount ||
-        oldWidget.sortColumnIndex != widget.sortColumnIndex ||
-        oldWidget.sortAscending != widget.sortAscending) {
-      _groupHeaderChildCache.clear();
-      _checkboxHeaderChild = null;
-    }
     _rowHighlight.syncSelected(_selectedRowIndices());
     if (_rowHighlight.hovered >= widget.rows.length) {
       _setHoveredRow(-1);
@@ -401,49 +389,40 @@ class _TableView2State extends State<TableView2> {
     final columnConfig = _columnList[adjustedColumnIndex];
     final bool isAlignCenter = columnConfig.isCenter;
 
-    // Parent group header row — real column merge. Every vicinity in the
-    // span must return the same child and the same merge metadata.
     if (vicinity.row == 0) {
       final groupColumn = _getGroupColumn(adjustedColumnIndex);
+
       if (groupColumn != null) {
-        return _buildGroupParentHeaderCell(
-          context: context,
-          vicinity: vicinity,
-          groupColumn: groupColumn,
+        final adjustedStart =
+            groupColumn.range!.start +
+            (widget.listViewConfig.isHaveCheckBox ? 1 : 0);
+
+        return TableViewCell(
+          columnMergeStart: adjustedStart,
+          columnMergeSpan: groupColumn.range!.length,
+          child: _headerCell(
+            groupColumn.range!.groupTitle,
+            context: context,
+            columnConfig: groupColumn,
+            index: vicinity.column,
+            sortIconColor: widget.sortIconColor,
+          ),
+        );
+      } else {
+        // single Column
+        return TableViewCell(
+          rowMergeStart: 0,
+          rowMergeSpan: widget.fixedRowCount,
+          child: _headerCell(
+            columnConfig.title,
+            context: context,
+            columnConfig: columnConfig,
+            index: vicinity.column,
+            sortIconColor: widget.sortIconColor,
+          ),
         );
       }
-      return _buildUngroupedHeaderCell(
-        context: context,
-        columnConfig: columnConfig,
-        columnIndex: vicinity.column,
-      );
     }
-
-    // Covered by row-merge from row 0 for ungrouped columns — must return the
-    // same merge metadata for every vicinity in the merged area.
-    if (vicinity.row > 0 &&
-        vicinity.row < widget.fixedRowCount &&
-        !_isGroupedColumn(adjustedColumnIndex)) {
-      return _buildUngroupedHeaderCell(
-        context: context,
-        columnConfig: columnConfig,
-        columnIndex: vicinity.column,
-      );
-    }
-
-    // Sub-headers of grouped columns
-    if (vicinity.row == 1 && _isGroupedColumn(adjustedColumnIndex)) {
-      return TableViewCell(
-        child: _headerCell(
-          columnConfig.title,
-          context: context,
-          columnConfig: columnConfig,
-          index: vicinity.column,
-          sortIconColor: widget.sortIconColor,
-        ),
-      );
-    }
-
     TableViewCell cell = const TableViewCell(
       child: ColoredBox(color: Colors.white),
     );
@@ -484,94 +463,34 @@ class _TableView2State extends State<TableView2> {
         ),
       );
     }
-    return cell;
-  }
+    // HEADER ROW 2 (sub-headers)
+    if (vicinity.row == 1) {
+      final isGrouped = _isGroupedColumn(adjustedColumnIndex);
 
-  TableViewCell _buildGroupParentHeaderCell({
-    required BuildContext context,
-    required TableVicinity vicinity,
-    required TableColumnConfig groupColumn,
-  }) {
-    final checkboxOffset = widget.listViewConfig.isHaveCheckBox ? 1 : 0;
-    final groupStart = groupColumn.range!.start + checkboxOffset;
-    final groupEnd = groupStart + groupColumn.range!.length - 1;
-    final merge = _groupMergeForVicinity(
-      groupStart: groupStart,
-      groupEnd: groupEnd,
-      column: vicinity.column,
-    );
-    final cacheKey =
-        'group_${groupColumn.key}_${merge.start}_${merge.span}'
-        '_${groupColumn.range!.groupTitle}';
-
-    return _groupHeaderChildCache.putIfAbsent(cacheKey, () {
-          final child = _headerCell(
-            groupColumn.range!.groupTitle,
+      if (isGrouped) {
+        // Đây là sub-header của grouped column
+        return TableViewCell(
+          child: _headerCell(
+            columnConfig.title,
             context: context,
-            columnConfig: groupColumn,
-            index: merge.start,
+            columnConfig: columnConfig,
+            index: vicinity.column,
             sortIconColor: widget.sortIconColor,
-          );
-          if (merge.span <= 1) {
-            return TableViewCell(child: child);
-          }
-          return TableViewCell(
-            columnMergeStart: merge.start,
-            columnMergeSpan: merge.span,
-            child: child,
-          );
-        })
-        as TableViewCell;
-  }
-
-  ({int start, int span}) _groupMergeForVicinity({
-    required int groupStart,
-    required int groupEnd,
-    required int column,
-  }) {
-    final pinnedCount = widget.listViewConfig.fixedLeftColumns;
-    var start = groupStart;
-    var end = groupEnd;
-    if (groupStart < pinnedCount && groupEnd >= pinnedCount) {
-      if (column < pinnedCount) {
-        end = pinnedCount - 1;
+          ),
+        );
       } else {
-        start = pinnedCount;
+        return cell;
       }
     }
-    return (start: start, span: end - start + 1);
-  }
-
-  TableViewCell _buildUngroupedHeaderCell({
-    required BuildContext context,
-    required TableColumnConfig columnConfig,
-    required int columnIndex,
-  }) {
-    final cacheKey = 'ungrouped_${columnConfig.key}_$columnIndex';
-    final child = _groupHeaderChildCache.putIfAbsent(
-      cacheKey,
-      () => _headerCell(
-        columnConfig.title,
-        context: context,
-        columnConfig: columnConfig,
-        index: columnIndex,
-        sortIconColor: widget.sortIconColor,
-      ),
-    );
-    return TableViewCell(
-      rowMergeStart: 0,
-      rowMergeSpan: widget.fixedRowCount,
-      child: child,
-    );
+    // Fallback
+    return cell;
   }
 
   TableViewCell _buildCheckboxCell(
     BuildContext context,
     TableVicinity vicinity,
   ) {
-    // Checkbox is always table column 0 (before any group). Header rows 0..N-1
-    // share one row-merged cell — same merge info for every covered vicinity.
-    if (vicinity.row < widget.fixedRowCount) {
+    if (vicinity.row == 0) {
       return _buildHeaderCheckboxCell(context);
     }
 
@@ -585,39 +504,34 @@ class _TableView2State extends State<TableView2> {
 
   TableViewCell _buildHeaderCheckboxCell(BuildContext context) {
     final allSelected = _areAllSelected();
-    // Rebuild when selection changes so select-all stays in sync, but always
-    // return the same row-merge metadata for rows 0..fixedRowCount-1.
-    final child = Container(
-      key: const ValueKey('tableview2_header_checkbox'),
-      color: widget.tableHeaderColor,
-      alignment: Alignment.center,
-      padding: const EdgeInsets.all(8),
-      child: CheckboxTheme(
-        data: TableView2.headingCheckboxThemeTwoDimensional(
-          context,
-          allSelected ?? false,
-        ),
-        child: Checkbox(
-          value: allSelected,
-          tristate: true,
-          onChanged: (value) {
-            final checked = value ?? false;
-            if (checked) {
-              _rowHighlight.selectAll(widget.rows.length);
-            } else {
-              _rowHighlight.clearSelected();
-            }
-            widget.onSelectAll?.call(checked);
-          },
-        ),
-      ),
-    );
-    _checkboxHeaderChild = child;
 
     return TableViewCell(
       rowMergeStart: 0,
       rowMergeSpan: widget.fixedRowCount,
-      child: child,
+      child: Container(
+        color: widget.tableHeaderColor,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.all(8),
+        child: CheckboxTheme(
+          data: TableView2.headingCheckboxThemeTwoDimensional(
+            context,
+            allSelected ?? false,
+          ),
+          child: Checkbox(
+            value: allSelected,
+            tristate: true,
+            onChanged: (value) {
+              final checked = value ?? false;
+              if (checked) {
+                _rowHighlight.selectAll(widget.rows.length);
+              } else {
+                _rowHighlight.clearSelected();
+              }
+              widget.onSelectAll?.call(checked);
+            },
+          ),
+        ),
+      ),
     );
   }
 
