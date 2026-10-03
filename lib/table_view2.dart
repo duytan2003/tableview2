@@ -406,6 +406,7 @@ class _TableView2State extends State<TableView2> {
             columnConfig: groupColumn,
             index: vicinity.column,
             sortIconColor: widget.sortIconColor,
+            maxLines: 3,
           ),
         );
       } else {
@@ -721,6 +722,7 @@ class _TableView2State extends State<TableView2> {
     required BuildContext context,
     required TableColumnConfig columnConfig,
     required Color sortIconColor,
+    int maxLines = 2,
   }) {
     final shouldCenter = columnConfig.isCenter;
     final isFilter = columnConfig.isFilter;
@@ -753,7 +755,7 @@ class _TableView2State extends State<TableView2> {
                         style:
                             widget.headingTextStyle ??
                             const TextStyle(color: Colors.white),
-                        maxLines: 2,
+                        maxLines: maxLines,
                         overflow: TextOverflow.ellipsis,
                         textAlign: shouldCenter
                             ? TextAlign.center
