@@ -224,11 +224,10 @@ class _TableView2State extends State<TableView2> {
 
   @override
   Widget build(BuildContext context) {
-    return SelectionContainer.disabled(
-      child: widget.rows.isEmpty
-          ? _buildDefaultEmptyState()
-          : _buildTableView(),
-    );
+    if (widget.rows.isEmpty) {
+      return _buildDefaultEmptyState();
+    }
+    return _buildTableView();
   }
 
   Widget _buildDefaultEmptyState() {
@@ -737,74 +736,81 @@ class _TableView2State extends State<TableView2> {
         columnConfig.maxWidth > columnConfig.minWidth;
     // Stack fills the whole cell so the resize handle sits on the real
     // column border — not inset by content padding.
-    return Stack(
-      fit: StackFit.expand,
-      clipBehavior: Clip.none,
-      children: [
-        ColoredBox(
-          color: widget.tableHeaderColor,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-            child: Row(
-              mainAxisAlignment: isFilter
-                  ? MainAxisAlignment.spaceBetween
-                  : shouldCenter
-                  ? MainAxisAlignment.center
-                  : MainAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: SelectionArea(
-                    child:
-                        widget.widgetTextHeader?.call(context, columnConfig) ??
-                        Text(
-                          text,
-                          style:
-                              widget.headingTextStyle ??
-                              const TextStyle(color: Colors.white),
-                          maxLines: maxLines,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: shouldCenter
-                              ? TextAlign.center
-                              : TextAlign.left,
-                        ),
+    return SelectionContainer.disabled(
+      child: Stack(
+        fit: StackFit.expand,
+        clipBehavior: Clip.none,
+        children: [
+          ColoredBox(
+            color: widget.tableHeaderColor,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              child: Row(
+                mainAxisAlignment: isFilter
+                    ? MainAxisAlignment.spaceBetween
+                    : shouldCenter
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: SelectionArea(
+                      child:
+                          widget.widgetTextHeader?.call(
+                            context,
+                            columnConfig,
+                          ) ??
+                          Text(
+                            text,
+                            style:
+                                widget.headingTextStyle ??
+                                const TextStyle(color: Colors.white),
+                            maxLines: maxLines,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: shouldCenter
+                                ? TextAlign.center
+                                : TextAlign.left,
+                          ),
+                    ),
                   ),
-                ),
-                if (isFilter)
-                  InkWell(
-                    onTap: () => widget.onFilter?.call(columnConfig),
-                    child:
-                        widget.filterIcon?.call(columnConfig.isActiveFilter) ??
-                        SvgPicture.asset(
-                          'assets/actions/ico_filter.svg',
-                          package: 'tableview2',
-                          width: 14,
-                          height: 14,
-                        ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        if (canResize)
-          Positioned(
-            top: 0,
-            bottom: 0,
-            right: -(widget.resizeHandleWidth / 2),
-            width: widget.resizeHandleWidth,
-            child: MouseRegion(
-              cursor: SystemMouseCursors.resizeColumn,
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onHorizontalDragStart: (_) =>
-                    _onColumnResizeStart(columnConfig),
-                onHorizontalDragUpdate: (details) =>
-                    _onColumnResizeUpdate(columnConfig, details),
-                onHorizontalDragEnd: (_) => _onColumnResizeEnd(),
-                child: const ColoredBox(color: Colors.transparent),
+                  if (isFilter)
+                    InkWell(
+                      onTap: () => widget.onFilter?.call(columnConfig),
+                      child:
+                          widget.filterIcon?.call(
+                            columnConfig.isActiveFilter,
+                          ) ??
+                          SvgPicture.asset(
+                            'assets/actions/ico_filter.svg',
+                            package: 'tableview2',
+                            width: 14,
+                            height: 14,
+                          ),
+                    ),
+                ],
               ),
             ),
           ),
-      ],
+          if (canResize)
+            Positioned(
+              top: 0,
+              bottom: 0,
+              right: -(widget.resizeHandleWidth / 2),
+              width: widget.resizeHandleWidth,
+              child: MouseRegion(
+                cursor: SystemMouseCursors.resizeColumn,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onHorizontalDragStart: (_) =>
+                      _onColumnResizeStart(columnConfig),
+                  onHorizontalDragUpdate: (details) =>
+                      _onColumnResizeUpdate(columnConfig, details),
+                  onHorizontalDragEnd: (_) => _onColumnResizeEnd(),
+                  child: const ColoredBox(color: Colors.transparent),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
