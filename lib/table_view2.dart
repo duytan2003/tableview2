@@ -438,32 +438,37 @@ class _TableView2State extends State<TableView2> {
               child: row.cells[cellIndex],
             )
           : const SizedBox.shrink();
-      cell = TableViewCell(
-        child: InkWell(
+      Widget content = _wrapRowHighlight(
+        dataRowIndex: dataRow,
+        idleColor: Colors.transparent,
+        child: Container(
+          alignment: isAlignCenter ? Alignment.center : Alignment.centerLeft,
+          child: _wrapDataCellWithRowResizeHandle(
+            dataRowIndex: dataRow,
+            child: dataChild,
+          ),
+        ),
+      );
+      final hasRowGestures =
+          row.onTap != null ||
+          row.onSecondaryTapDown != null ||
+          row.onDoubleTap != null ||
+          row.onLongPress != null;
+      if (hasRowGestures) {
+        content = InkWell(
           hoverColor: Colors.transparent,
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,
           focusColor: Colors.transparent,
-          onTap: () => row.onTap?.call(),
-          onSecondaryTapDown: (details) =>
-              row.onSecondaryTapDown?.call(details),
+          canRequestFocus: false,
+          onTap: row.onTap,
+          onSecondaryTapDown: row.onSecondaryTapDown,
           onDoubleTap: row.onDoubleTap,
-          onLongPress: () => row.onLongPress?.call(),
-          child: _wrapRowHighlight(
-            dataRowIndex: dataRow,
-            idleColor: Colors.transparent,
-            child: Container(
-              alignment: isAlignCenter
-                  ? Alignment.center
-                  : Alignment.centerLeft,
-              child: _wrapDataCellWithRowResizeHandle(
-                dataRowIndex: dataRow,
-                child: dataChild,
-              ),
-            ),
-          ),
-        ),
-      );
+          onLongPress: row.onLongPress,
+          child: content,
+        );
+      }
+      cell = TableViewCell(child: content);
     }
     // HEADER ROW 2 (sub-headers)
     if (vicinity.row == 1) {
@@ -654,7 +659,6 @@ class _TableView2State extends State<TableView2> {
       idleColor: idleColor,
       hoverColor: widget.rowHoverColor,
       selectedColor: widget.rowSelectedColor,
-      onEnter: () => _setHoveredRow(dataRowIndex),
       child: child,
     );
   }
@@ -1078,7 +1082,6 @@ class _RowHighlightBackground extends StatelessWidget {
     required this.idleColor,
     required this.hoverColor,
     required this.selectedColor,
-    required this.onEnter,
     required this.child,
   });
 
@@ -1087,7 +1090,6 @@ class _RowHighlightBackground extends StatelessWidget {
   final Color idleColor;
   final Color hoverColor;
   final Color selectedColor;
-  final VoidCallback onEnter;
   final Widget child;
 
   Color _colorForRow() {
@@ -1098,19 +1100,15 @@ class _RowHighlightBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      opaque: false,
-      onEnter: (_) => onEnter(),
-      child: ValueListenableBuilder<int>(
-        valueListenable: controller.tokenFor(rowIndex),
-        builder: (context, _, child) {
-          return ColoredBox(
-            color: _colorForRow(),
-            child: SizedBox.expand(child: child),
-          );
-        },
-        child: child,
-      ),
+    return ValueListenableBuilder<int>(
+      valueListenable: controller.tokenFor(rowIndex),
+      builder: (context, _, child) {
+        return ColoredBox(
+          color: _colorForRow(),
+          child: SizedBox.expand(child: child),
+        );
+      },
+      child: child,
     );
   }
 }
