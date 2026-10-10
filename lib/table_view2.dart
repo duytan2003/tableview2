@@ -224,10 +224,11 @@ class _TableView2State extends State<TableView2> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.rows.isEmpty) {
-      return _buildDefaultEmptyState();
-    }
-    return _buildTableView();
+    return SelectionContainer.disabled(
+      child: widget.rows.isEmpty
+          ? _buildDefaultEmptyState()
+          : _buildTableView(),
+    );
   }
 
   Widget _buildDefaultEmptyState() {
@@ -748,19 +749,21 @@ class _TableView2State extends State<TableView2> {
                   : MainAxisAlignment.start,
               children: [
                 Expanded(
-                  child:
-                      widget.widgetTextHeader?.call(context, columnConfig) ??
-                      Text(
-                        text,
-                        style:
-                            widget.headingTextStyle ??
-                            const TextStyle(color: Colors.white),
-                        maxLines: maxLines,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: shouldCenter
-                            ? TextAlign.center
-                            : TextAlign.left,
-                      ),
+                  child: SelectionArea(
+                    child:
+                        widget.widgetTextHeader?.call(context, columnConfig) ??
+                        Text(
+                          text,
+                          style:
+                              widget.headingTextStyle ??
+                              const TextStyle(color: Colors.white),
+                          maxLines: maxLines,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: shouldCenter
+                              ? TextAlign.center
+                              : TextAlign.left,
+                        ),
+                  ),
                 ),
                 if (isFilter)
                   InkWell(
