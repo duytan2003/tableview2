@@ -1,7 +1,19 @@
+import 'dart:ui' show Color;
+
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'table_column_config.g.dart';
+
+class NullableColorConverter implements JsonConverter<Color?, int?> {
+  const NullableColorConverter();
+
+  @override
+  Color? fromJson(int? json) => json == null ? null : Color(json);
+
+  @override
+  int? toJson(Color? color) => color?.toARGB32();
+}
 
 class ColumnTitleInfo extends Equatable {
   final String key;
@@ -68,6 +80,9 @@ class TableColumnConfig extends Equatable {
   final RangeData? range;
   final bool isFlexible;
 
+  @NullableColorConverter()
+  final Color? headerColor;
+
   const TableColumnConfig({
     required this.title,
     required double width,
@@ -81,6 +96,7 @@ class TableColumnConfig extends Equatable {
     this.isActiveFilter = false,
     this.range,
     this.isFlexible = false,
+    this.headerColor,
   }) : _width = width;
 
   factory TableColumnConfig.fromJson(Map<String, dynamic> json) =>
@@ -101,6 +117,7 @@ class TableColumnConfig extends Equatable {
     bool? isActiveFilter,
     bool? isFlexible,
     RangeData? range,
+    Color? headerColor,
   }) => TableColumnConfig(
     title: title ?? this.title,
     width: width ?? _width,
@@ -114,6 +131,7 @@ class TableColumnConfig extends Equatable {
     range: range ?? this.range,
     isActiveFilter: isActiveFilter ?? this.isActiveFilter,
     isFlexible: isFlexible ?? this.isFlexible,
+    headerColor: headerColor ?? this.headerColor,
   );
   double get width {
     if (range == null) return _width;
@@ -142,6 +160,7 @@ class TableColumnConfig extends Equatable {
     isActiveFilter,
     range,
     isFlexible,
+    headerColor,
   ];
 
   TableColumnConfig updateTitleFromList(List<ColumnTitleInfo> updates) {

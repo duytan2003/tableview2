@@ -38,20 +38,25 @@ TableColumnConfig _$TableColumnConfigFromJson(Map<String, dynamic> json) =>
           ? null
           : RangeData.fromJson(json['range'] as Map<String, dynamic>),
       isFlexible: json['isFlexible'] as bool? ?? false,
+      headerColor: const NullableColorConverter().fromJson(
+        (json['headerColor'] as num?)?.toInt(),
+      ),
     );
 
-Map<String, dynamic> _$TableColumnConfigToJson(TableColumnConfig instance) =>
-    <String, dynamic>{
-      'title': instance.title,
-      'key': instance.key,
-      'isCenter': instance.isCenter,
-      'isFilter': instance.isFilter,
-      'isShow': instance.isShow,
-      'minWidth': instance.minWidth,
-      'maxWidth': instance.maxWidth,
-      'isCanFreezed': instance.isCanFreezed,
-      'isActiveFilter': instance.isActiveFilter,
-      'range': instance.range,
-      'isFlexible': instance.isFlexible,
-      'width': instance.width,
-    };
+Map<String, dynamic> _$TableColumnConfigToJson(
+  TableColumnConfig instance,
+) => <String, dynamic>{
+  'title': instance.title,
+  'key': instance.key,
+  'isCenter': instance.isCenter,
+  'isFilter': instance.isFilter,
+  'isShow': instance.isShow,
+  'minWidth': instance.minWidth,
+  'maxWidth': instance.maxWidth,
+  'isCanFreezed': instance.isCanFreezed,
+  'isActiveFilter': instance.isActiveFilter,
+  'range': instance.range,
+  'isFlexible': instance.isFlexible,
+  'headerColor': const NullableColorConverter().toJson(instance.headerColor),
+  'width': instance.width,
+};

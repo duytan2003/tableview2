@@ -742,7 +742,7 @@ class _TableView2State extends State<TableView2> {
         clipBehavior: Clip.none,
         children: [
           ColoredBox(
-            color: widget.tableHeaderColor,
+            color: columnConfig.headerColor ?? widget.tableHeaderColor,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
               child: Row(
