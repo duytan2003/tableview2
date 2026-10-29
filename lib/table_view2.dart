@@ -358,6 +358,7 @@ class _TableView2State extends State<TableView2> {
           return table;
         }
         return Stack(
+          clipBehavior: Clip.none,
           children: [
             table,
             // Work around two_dimensional_scrollables hit-test bug: unpinned
@@ -368,7 +369,7 @@ class _TableView2State extends State<TableView2> {
               Positioned(
                 left: 0,
                 top: 0,
-                width: pinnedWidth,
+                width: pinnedWidth + widget.resizeHandleWidth / 2,
                 height: headerHeight,
                 child: _buildPinnedHeaderFilterOverlay(),
               ),
@@ -831,9 +832,12 @@ class _TableView2State extends State<TableView2> {
         columnConfig.range == null &&
         columnConfig.maxWidth > columnConfig.minWidth;
     // Stack fills the whole cell so the resize handle sits on the real
-    // column border — not inset by content padding. Filter sits above the
-    // resize handle so scroll/resize hit-targets cannot swallow its taps.
+    // column border. Filter is inset from the right so it does not cover the
+    // resize strip; resize handle stays last so edge-drags always win.
     const filterHitWidth = 22.0;
+    final resizeEdge = canResize ? widget.resizeHandleWidth / 2 : 0.0;
+    final filterRight = resizeEdge;
+    final textRightPad = isFilter ? filterHitWidth + filterRight : 4.0;
     return SelectionContainer.disabled(
       child: Stack(
         fit: StackFit.expand,
@@ -842,12 +846,7 @@ class _TableView2State extends State<TableView2> {
           ColoredBox(
             color: columnConfig.headerColor ?? widget.tableHeaderColor,
             child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                4,
-                4,
-                isFilter ? filterHitWidth : 4,
-                4,
-              ),
+              padding: EdgeInsets.fromLTRB(4, 4, textRightPad, 4),
               child: Align(
                 alignment: shouldCenter
                     ? Alignment.center
@@ -870,6 +869,29 @@ class _TableView2State extends State<TableView2> {
               ),
             ),
           ),
+          if (isFilter)
+            Positioned(
+              top: 0,
+              bottom: 0,
+              right: filterRight,
+              width: filterHitWidth,
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  onTap: () => widget.onFilter?.call(columnConfig),
+                  child: Center(
+                    child:
+                        widget.filterIcon?.call(columnConfig.isActiveFilter) ??
+                        SvgPicture.asset(
+                          'assets/actions/ico_filter.svg',
+                          package: 'tableview2',
+                          width: 14,
+                          height: 14,
+                        ),
+                  ),
+                ),
+              ),
+            ),
           if (canResize)
             Positioned(
               top: 0,
@@ -886,29 +908,6 @@ class _TableView2State extends State<TableView2> {
                       _onColumnResizeUpdate(columnConfig, details),
                   onHorizontalDragEnd: (_) => _onColumnResizeEnd(),
                   child: const ColoredBox(color: Colors.transparent),
-                ),
-              ),
-            ),
-          if (isFilter)
-            Positioned(
-              top: 0,
-              bottom: 0,
-              right: 0,
-              width: filterHitWidth,
-              child: Material(
-                type: MaterialType.transparency,
-                child: InkWell(
-                  onTap: () => widget.onFilter?.call(columnConfig),
-                  child: Center(
-                    child:
-                        widget.filterIcon?.call(columnConfig.isActiveFilter) ??
-                        SvgPicture.asset(
-                          'assets/actions/ico_filter.svg',
-                          package: 'tableview2',
-                          width: 14,
-                          height: 14,
-                        ),
-                  ),
                 ),
               ),
             ),
@@ -1109,6 +1108,8 @@ class _TableView2State extends State<TableView2> {
 
   /// Hit targets for filter icons on pinned headers only. Passes through
   /// everywhere else so text selection still reaches the real header cells.
+  /// Resize handles are re-hosted here so column drag still works above the
+  /// overlay (which otherwise sits on top of the real header cells).
   Widget _buildPinnedHeaderFilterOverlay() {
     final pinnedCount = widget.listViewConfig.fixedLeftColumns;
     final children = <Widget>[];
@@ -1117,6 +1118,7 @@ class _TableView2State extends State<TableView2> {
     for (var tableColumn = 0; tableColumn < pinnedCount; tableColumn++) {
       final width = _getColumnWidth(tableColumn);
       final filterColumn = _filterColumnConfigForTableColumn(tableColumn);
+      final resizeColumn = _resizeColumnConfigForTableColumn(tableColumn);
       final adjusted = widget.listViewConfig.isHaveCheckBox
           ? tableColumn - 1
           : tableColumn;
@@ -1127,6 +1129,9 @@ class _TableView2State extends State<TableView2> {
       final height = isGrouped
           ? widget.headingRowHeight
           : widget.headingRowHeight * widget.fixedRowCount;
+      final resizeEdge = resizeColumn != null
+          ? widget.resizeHandleWidth / 2
+          : 0.0;
 
       children.add(
         Positioned(
@@ -1134,44 +1139,78 @@ class _TableView2State extends State<TableView2> {
           top: top,
           width: width,
           height: height,
-          child: filterColumn == null
-              ? const IgnorePointer(child: SizedBox.expand())
-              : Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    const IgnorePointer(child: SizedBox.expand()),
-                    Positioned(
-                      top: 0,
-                      bottom: 0,
-                      right: 0,
-                      width: 22,
-                      child: Material(
-                        type: MaterialType.transparency,
-                        child: InkWell(
-                          onTap: () => widget.onFilter?.call(filterColumn),
-                          child: Center(
-                            child:
-                                widget.filterIcon?.call(
-                                  filterColumn.isActiveFilter,
-                                ) ??
-                                SvgPicture.asset(
-                                  'assets/actions/ico_filter.svg',
-                                  package: 'tableview2',
-                                  width: 14,
-                                  height: 14,
-                                ),
-                          ),
-                        ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            fit: StackFit.expand,
+            children: [
+              const IgnorePointer(child: SizedBox.expand()),
+              if (filterColumn != null)
+                Positioned(
+                  top: 0,
+                  bottom: 0,
+                  right: resizeEdge,
+                  width: 22,
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: InkWell(
+                      onTap: () => widget.onFilter?.call(filterColumn),
+                      child: Center(
+                        child:
+                            widget.filterIcon?.call(
+                              filterColumn.isActiveFilter,
+                            ) ??
+                            SvgPicture.asset(
+                              'assets/actions/ico_filter.svg',
+                              package: 'tableview2',
+                              width: 14,
+                              height: 14,
+                            ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
+              if (resizeColumn != null)
+                Positioned(
+                  top: 0,
+                  bottom: 0,
+                  right: -(widget.resizeHandleWidth / 2),
+                  width: widget.resizeHandleWidth,
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.resizeColumn,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onHorizontalDragStart: (_) =>
+                          _onColumnResizeStart(resizeColumn),
+                      onHorizontalDragUpdate: (details) =>
+                          _onColumnResizeUpdate(resizeColumn, details),
+                      onHorizontalDragEnd: (_) => _onColumnResizeEnd(),
+                      child: const ColoredBox(color: Colors.transparent),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       );
       left += width;
     }
 
-    return Stack(children: children);
+    return Stack(clipBehavior: Clip.none, children: children);
+  }
+
+  TableColumnConfig? _resizeColumnConfigForTableColumn(int tableColumn) {
+    if (!widget.enableColumnResize) return null;
+    if (widget.listViewConfig.isHaveCheckBox && tableColumn == 0) {
+      return null;
+    }
+    final adjusted = widget.listViewConfig.isHaveCheckBox
+        ? tableColumn - 1
+        : tableColumn;
+    if (adjusted < 0 || adjusted >= _columnList.length) return null;
+    final config = _columnList[adjusted];
+    if (config.range != null) return null;
+    if (config.maxWidth <= config.minWidth) return null;
+    return config;
   }
 
   /// Visible column config that owns the filter control for [tableColumn], or
