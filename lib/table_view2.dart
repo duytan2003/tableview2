@@ -360,6 +360,18 @@ class _TableView2State extends State<TableView2> {
         return Stack(
           children: [
             table,
+            // Work around two_dimensional_scrollables hit-test bug: unpinned
+            // cells scrolled under the pinned band still win hits (paint is
+            // clipped, hit tests are not). Overlay keeps pinned header filters
+            // tappable. See flutter/flutter#186876.
+            if (pinnedWidth > 0 && headerHeight > 0)
+              Positioned(
+                left: 0,
+                top: 0,
+                width: pinnedWidth,
+                height: headerHeight,
+                child: _buildPinnedHeaderFilterOverlay(),
+              ),
             Positioned(
               right: 0,
               top: headerHeight,
@@ -1093,6 +1105,87 @@ class _TableView2State extends State<TableView2> {
       width += _getColumnWidth(i);
     }
     return width;
+  }
+
+  /// Hit targets for filter icons on pinned headers only. Passes through
+  /// everywhere else so text selection still reaches the real header cells.
+  Widget _buildPinnedHeaderFilterOverlay() {
+    final pinnedCount = widget.listViewConfig.fixedLeftColumns;
+    final children = <Widget>[];
+    var left = 0.0;
+
+    for (var tableColumn = 0; tableColumn < pinnedCount; tableColumn++) {
+      final width = _getColumnWidth(tableColumn);
+      final filterColumn = _filterColumnConfigForTableColumn(tableColumn);
+      final adjusted = widget.listViewConfig.isHaveCheckBox
+          ? tableColumn - 1
+          : tableColumn;
+      final isGrouped = adjusted >= 0 && _isGroupedColumn(adjusted);
+
+      // Grouped sub-header sits on row 1; ungrouped header merges all header rows.
+      final top = isGrouped ? widget.headingRowHeight : 0.0;
+      final height = isGrouped
+          ? widget.headingRowHeight
+          : widget.headingRowHeight * widget.fixedRowCount;
+
+      children.add(
+        Positioned(
+          left: left,
+          top: top,
+          width: width,
+          height: height,
+          child: filterColumn == null
+              ? const IgnorePointer(child: SizedBox.expand())
+              : Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    const IgnorePointer(child: SizedBox.expand()),
+                    Positioned(
+                      top: 0,
+                      bottom: 0,
+                      right: 0,
+                      width: 22,
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: InkWell(
+                          onTap: () => widget.onFilter?.call(filterColumn),
+                          child: Center(
+                            child:
+                                widget.filterIcon?.call(
+                                  filterColumn.isActiveFilter,
+                                ) ??
+                                SvgPicture.asset(
+                                  'assets/actions/ico_filter.svg',
+                                  package: 'tableview2',
+                                  width: 14,
+                                  height: 14,
+                                ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      );
+      left += width;
+    }
+
+    return Stack(children: children);
+  }
+
+  /// Visible column config that owns the filter control for [tableColumn], or
+  /// null when that pinned column has no filter.
+  TableColumnConfig? _filterColumnConfigForTableColumn(int tableColumn) {
+    if (widget.listViewConfig.isHaveCheckBox && tableColumn == 0) {
+      return null;
+    }
+    final adjusted = widget.listViewConfig.isHaveCheckBox
+        ? tableColumn - 1
+        : tableColumn;
+    if (adjusted < 0 || adjusted >= _columnList.length) return null;
+    final config = _columnList[adjusted];
+    return config.isFilter ? config : null;
   }
 }
 
