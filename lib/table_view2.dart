@@ -142,6 +142,11 @@ class _TableView2State extends State<TableView2> {
   late final ValueNotifier<ScrollMetrics?> _horizontalMetricsNotifier;
   late final ValueNotifier<ScrollMetrics?> _verticalMetricsNotifier;
   final _RowHighlightController _rowHighlight = _RowHighlightController();
+
+  /// Same [TableViewCell] instance for every vicinity in a merged header.
+  final Map<String, TableViewCell> _headerMergeCache = {};
+  TableViewCell? _checkboxHeaderCell;
+  bool? _checkboxHeaderAllSelected;
   String? _resizingColumnKey;
   double _resizeStartWidth = 0;
   bool _isResizingRowHeight = false;
@@ -176,6 +181,14 @@ class _TableView2State extends State<TableView2> {
   @override
   void didUpdateWidget(covariant TableView2 oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.listViewConfig != widget.listViewConfig ||
+        oldWidget.tableHeaderColor != widget.tableHeaderColor ||
+        oldWidget.fixedRowCount != widget.fixedRowCount ||
+        oldWidget.headingTextStyle != widget.headingTextStyle) {
+      _headerMergeCache.clear();
+      _checkboxHeaderCell = null;
+      _checkboxHeaderAllSelected = null;
+    }
     _rowHighlight.syncSelected(_selectedRowIndices());
     if (_rowHighlight.hovered >= widget.rows.length) {
       _setHoveredRow(-1);
@@ -389,41 +402,48 @@ class _TableView2State extends State<TableView2> {
     final columnConfig = _columnList[adjustedColumnIndex];
     final bool isAlignCenter = columnConfig.isCenter;
 
+    // Parent / ungrouped header row
     if (vicinity.row == 0) {
       final groupColumn = _getGroupColumn(adjustedColumnIndex);
-
       if (groupColumn != null) {
-        final adjustedStart =
-            groupColumn.range!.start +
-            (widget.listViewConfig.isHaveCheckBox ? 1 : 0);
-
-        return TableViewCell(
-          columnMergeStart: adjustedStart,
-          columnMergeSpan: groupColumn.range!.length,
-          child: _headerCell(
-            groupColumn.range!.groupTitle,
-            context: context,
-            columnConfig: groupColumn,
-            index: vicinity.column,
-            sortIconColor: widget.sortIconColor,
-            maxLines: 3,
-          ),
-        );
-      } else {
-        // single Column
-        return TableViewCell(
-          rowMergeStart: 0,
-          rowMergeSpan: widget.fixedRowCount,
-          child: _headerCell(
-            columnConfig.title,
-            context: context,
-            columnConfig: columnConfig,
-            index: vicinity.column,
-            sortIconColor: widget.sortIconColor,
-          ),
+        return _buildGroupParentHeaderCell(
+          context: context,
+          vicinity: vicinity,
+          groupColumn: groupColumn,
         );
       }
+      return _buildUngroupedHeaderCell(
+        context: context,
+        columnConfig: columnConfig,
+        columnIndex: vicinity.column,
+      );
     }
+
+    // Covered by row-merge from row 0 for ungrouped columns — same merge
+    // metadata required for every vicinity in the merged area.
+    if (vicinity.row > 0 &&
+        vicinity.row < widget.fixedRowCount &&
+        !_isGroupedColumn(adjustedColumnIndex)) {
+      return _buildUngroupedHeaderCell(
+        context: context,
+        columnConfig: columnConfig,
+        columnIndex: vicinity.column,
+      );
+    }
+
+    // Sub-headers of grouped columns
+    if (vicinity.row == 1 && _isGroupedColumn(adjustedColumnIndex)) {
+      return TableViewCell(
+        child: _headerCell(
+          columnConfig.title,
+          context: context,
+          columnConfig: columnConfig,
+          index: vicinity.column,
+          sortIconColor: widget.sortIconColor,
+        ),
+      );
+    }
+
     TableViewCell cell = const TableViewCell(
       child: ColoredBox(color: Colors.white),
     );
@@ -469,34 +489,93 @@ class _TableView2State extends State<TableView2> {
       }
       cell = TableViewCell(child: content);
     }
-    // HEADER ROW 2 (sub-headers)
-    if (vicinity.row == 1) {
-      final isGrouped = _isGroupedColumn(adjustedColumnIndex);
+    return cell;
+  }
 
-      if (isGrouped) {
-        // Đây là sub-header của grouped column
-        return TableViewCell(
-          child: _headerCell(
-            columnConfig.title,
-            context: context,
-            columnConfig: columnConfig,
-            index: vicinity.column,
-            sortIconColor: widget.sortIconColor,
-          ),
-        );
+  /// Group title with real column merge. Merge cannot cross the pinned /
+  /// unpinned boundary (package assert), so a straddling group is split.
+  TableViewCell _buildGroupParentHeaderCell({
+    required BuildContext context,
+    required TableVicinity vicinity,
+    required TableColumnConfig groupColumn,
+  }) {
+    final checkboxOffset = widget.listViewConfig.isHaveCheckBox ? 1 : 0;
+    final groupStart = groupColumn.range!.start + checkboxOffset;
+    final groupEnd = groupStart + groupColumn.range!.length - 1;
+    final merge = _groupMergeForVicinity(
+      groupStart: groupStart,
+      groupEnd: groupEnd,
+      column: vicinity.column,
+    );
+    final cacheKey =
+        'group_${groupColumn.key}_${merge.start}_${merge.span}'
+        '_${groupColumn.range!.groupTitle}';
+
+    return _headerMergeCache.putIfAbsent(cacheKey, () {
+      final child = _headerCell(
+        groupColumn.range!.groupTitle,
+        context: context,
+        columnConfig: groupColumn,
+        index: merge.start,
+        sortIconColor: widget.sortIconColor,
+        maxLines: 3,
+      );
+      if (merge.span <= 1) {
+        return TableViewCell(child: child);
+      }
+      return TableViewCell(
+        columnMergeStart: merge.start,
+        columnMergeSpan: merge.span,
+        child: child,
+      );
+    });
+  }
+
+  ({int start, int span}) _groupMergeForVicinity({
+    required int groupStart,
+    required int groupEnd,
+    required int column,
+  }) {
+    final pinnedCount = widget.listViewConfig.fixedLeftColumns;
+    var start = groupStart;
+    var end = groupEnd;
+    if (groupStart < pinnedCount && groupEnd >= pinnedCount) {
+      if (column < pinnedCount) {
+        end = pinnedCount - 1;
       } else {
-        return cell;
+        start = pinnedCount;
       }
     }
-    // Fallback
-    return cell;
+    return (start: start, span: end - start + 1);
+  }
+
+  TableViewCell _buildUngroupedHeaderCell({
+    required BuildContext context,
+    required TableColumnConfig columnConfig,
+    required int columnIndex,
+  }) {
+    final cacheKey = 'ungrouped_${columnConfig.key}_$columnIndex';
+    return _headerMergeCache.putIfAbsent(
+      cacheKey,
+      () => TableViewCell(
+        rowMergeStart: 0,
+        rowMergeSpan: widget.fixedRowCount,
+        child: _headerCell(
+          columnConfig.title,
+          context: context,
+          columnConfig: columnConfig,
+          index: columnIndex,
+          sortIconColor: widget.sortIconColor,
+        ),
+      ),
+    );
   }
 
   TableViewCell _buildCheckboxCell(
     BuildContext context,
     TableVicinity vicinity,
   ) {
-    if (vicinity.row == 0) {
+    if (vicinity.row < widget.fixedRowCount) {
       return _buildHeaderCheckboxCell(context);
     }
 
@@ -510,8 +589,12 @@ class _TableView2State extends State<TableView2> {
 
   TableViewCell _buildHeaderCheckboxCell(BuildContext context) {
     final allSelected = _areAllSelected();
-
-    return TableViewCell(
+    if (_checkboxHeaderCell != null &&
+        _checkboxHeaderAllSelected == allSelected) {
+      return _checkboxHeaderCell!;
+    }
+    _checkboxHeaderAllSelected = allSelected;
+    _checkboxHeaderCell = TableViewCell(
       rowMergeStart: 0,
       rowMergeSpan: widget.fixedRowCount,
       child: Container(
@@ -539,6 +622,7 @@ class _TableView2State extends State<TableView2> {
         ),
       ),
     );
+    return _checkboxHeaderCell!;
   }
 
   TableViewCell _buildDataCheckboxCell(
@@ -735,7 +819,9 @@ class _TableView2State extends State<TableView2> {
         columnConfig.range == null &&
         columnConfig.maxWidth > columnConfig.minWidth;
     // Stack fills the whole cell so the resize handle sits on the real
-    // column border — not inset by content padding.
+    // column border — not inset by content padding. Filter sits above the
+    // resize handle so scroll/resize hit-targets cannot swallow its taps.
+    const filterHitWidth = 22.0;
     return SelectionContainer.disabled(
       child: Stack(
         fit: StackFit.expand,
@@ -744,49 +830,31 @@ class _TableView2State extends State<TableView2> {
           ColoredBox(
             color: columnConfig.headerColor ?? widget.tableHeaderColor,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-              child: Row(
-                mainAxisAlignment: isFilter
-                    ? MainAxisAlignment.spaceBetween
-                    : shouldCenter
-                    ? MainAxisAlignment.center
-                    : MainAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: SelectionArea(
-                      child:
-                          widget.widgetTextHeader?.call(
-                            context,
-                            columnConfig,
-                          ) ??
-                          Text(
-                            text,
-                            style:
-                                widget.headingTextStyle ??
-                                const TextStyle(color: Colors.white),
-                            maxLines: maxLines,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: shouldCenter
-                                ? TextAlign.center
-                                : TextAlign.left,
-                          ),
-                    ),
-                  ),
-                  if (isFilter)
-                    InkWell(
-                      onTap: () => widget.onFilter?.call(columnConfig),
-                      child:
-                          widget.filterIcon?.call(
-                            columnConfig.isActiveFilter,
-                          ) ??
-                          SvgPicture.asset(
-                            'assets/actions/ico_filter.svg',
-                            package: 'tableview2',
-                            width: 14,
-                            height: 14,
-                          ),
-                    ),
-                ],
+              padding: EdgeInsets.fromLTRB(
+                4,
+                4,
+                isFilter ? filterHitWidth : 4,
+                4,
+              ),
+              child: Align(
+                alignment: shouldCenter
+                    ? Alignment.center
+                    : Alignment.centerLeft,
+                child: SelectionArea(
+                  child:
+                      widget.widgetTextHeader?.call(context, columnConfig) ??
+                      Text(
+                        text,
+                        style:
+                            widget.headingTextStyle ??
+                            const TextStyle(color: Colors.white),
+                        maxLines: maxLines,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: shouldCenter
+                            ? TextAlign.center
+                            : TextAlign.left,
+                      ),
+                ),
               ),
             ),
           ),
@@ -806,6 +874,29 @@ class _TableView2State extends State<TableView2> {
                       _onColumnResizeUpdate(columnConfig, details),
                   onHorizontalDragEnd: (_) => _onColumnResizeEnd(),
                   child: const ColoredBox(color: Colors.transparent),
+                ),
+              ),
+            ),
+          if (isFilter)
+            Positioned(
+              top: 0,
+              bottom: 0,
+              right: 0,
+              width: filterHitWidth,
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  onTap: () => widget.onFilter?.call(columnConfig),
+                  child: Center(
+                    child:
+                        widget.filterIcon?.call(columnConfig.isActiveFilter) ??
+                        SvgPicture.asset(
+                          'assets/actions/ico_filter.svg',
+                          package: 'tableview2',
+                          width: 14,
+                          height: 14,
+                        ),
+                  ),
                 ),
               ),
             ),
